@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %}Community Highlights · Opportunity Hub{% endblock %}
+{% block content %}
+<main class="gallery-page">
+  <section class="info-hero"><div class="wrap"><div class="eyebrow">PEOPLE · IDEAS · MOMENTS</div><h1>Community<br><em>Highlights.</em></h1><p>Photos and videos from Opportunity Hub events, programs and community moments.</p></div></section>
+  <section class="section-pad"><div class="wrap"><div class="gallery-intro"><span class="eyebrow dark-eyebrow">MOMENTS FROM THE HUB</span><h2>See what we’re<br><em>building together.</em></h2></div>
+    {% if media_items %}<div class="media-grid gallery-media-grid">{% for item in media_items %}<article class="media-card"><div class="media-visual">{% if item.media_type=='photo' %}<img src="{{ url_for('static',filename=item.file_path) }}" alt="{{ item.title }}" loading="lazy">{% else %}<video src="{{ url_for('static',filename=item.file_path) }}" controls preload="metadata" aria-label="{{ item.title }}"></video>{% endif %}<span class="media-kind">{{ 'PHOTO' if item.media_type=='photo' else 'VIDEO' }}</span></div><div class="media-caption"><h3>{{ item.title }}</h3>{% if item.caption %}<p>{{ item.caption }}</p>{% endif %}</div></article>{% endfor %}</div>
+    {% else %}<div class="gallery-empty"><span>✦</span><h2>New stories are on the way.</h2><p>The Opportunity Hub team will share photos and videos here.</p><a class="button button-dark" href="{{ url_for('home') }}">Back to the homepage ↗</a></div>{% endif %}
+  </div></section>
+</main>
+{% endblock %}

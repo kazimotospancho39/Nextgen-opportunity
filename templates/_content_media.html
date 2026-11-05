@@ -1,0 +1,9 @@
+{% if content_media %}
+<section class="content-media-section"><div class="wrap"><div class="content-media-grid">
+  {% for item in content_media %}<figure class="content-media-item">
+    {% if item.media_type == 'photo' %}<img src="{{ url_for('static',filename=item.file_path) }}" alt="{{ item.title }}" loading="lazy">
+    {% else %}<video src="{{ url_for('static',filename=item.file_path) }}" controls preload="metadata" aria-label="{{ item.title }}"></video>{% endif %}
+    {% if item.title or item.caption %}<figcaption>{% if item.title %}<strong>{{ item.title }}</strong>{% endif %}{% if item.caption %}<span>{{ item.caption }}</span>{% endif %}</figcaption>{% endif %}
+  </figure>{% endfor %}
+</div></div></section>
+{% endif %}

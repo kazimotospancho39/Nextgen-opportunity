@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#142e28">
+  <meta name="description" content="Discover global scholarships, careers, leadership programs and events with NextGen Opportunities Plus. Discover. Connect. Explore.">
+  <title>{% block title %}NextGen Opportunities Plus · Discover. Connect. Explore.{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}">
+</head>
+<body>
+<header class="header"><div class="wrap nav">
+  <a class="brand brand-nextgen" href="{{ url_for('home') }}" aria-label="NextGen Opportunities Plus home"><img src="{{ url_for('static',filename='nextgen-no-plus.svg') }}" alt="NextGen Opportunities Plus — Discover. Connect. Explore."></a>
+  <button class="menu-button" aria-label="Toggle navigation" aria-expanded="false" onclick="this.setAttribute('aria-expanded',document.querySelector('.nav-links').classList.toggle('show'))">☰</button>
+  <nav class="nav-links" aria-label="Main navigation">
+    <details class="nav-dropdown"><summary>Explore all <span>⌄</span></summary><div class="mega-menu">
+      <div class="mega-group"><b>OPPORTUNITIES</b><a href="{{ url_for('home',category='scholarship') }}#discover">Scholarships</a><a href="{{ url_for('home',category='fellowship') }}#discover">Fellowships</a><a href="{{ url_for('home',category='internship') }}#discover">Internships</a><a href="{{ url_for('home',category='job') }}#discover">Jobs & careers</a></div>
+      <div class="mega-group"><b>GROW & CONNECT</b><a href="{{ url_for('home',category='grant') }}#discover">Grants & competitions</a><a href="{{ url_for('home',category='camp') }}#discover">Camps & leadership</a><a href="{{ url_for('home',category='training') }}#discover">Training & exchange</a><a href="{{ url_for('home',category='event') }}#discover">Conferences & events</a></div>
+      <div class="mega-feature"><span>YOUR NEXT STEP, ONE HUB</span><b>Find it.<br>Prepare for it.<br>Make it happen.</b><a href="{{ url_for('home') }}#discover">Browse all opportunities ↗</a></div>
+    </div></details>
+    <a href="{{ url_for('events') }}">Events</a><a class="nav-media-link" href="{{ url_for('gallery') }}"><span aria-hidden="true">▧</span> Community Highlights</a><a href="{{ url_for('programs') }}">Programs</a><a href="{{ url_for('about') }}">Our story</a><a href="{{ url_for('contact') }}">Contact</a>
+  </nav>
+  <div class="nav-actions">{% if site_user %}<a class="nav-account" href="{{ url_for('dashboard') }}">My Hub <span>↗</span></a><span class="nav-avatar">{{ site_user.full_name[0]|upper }}</span>{% else %}<a class="nav-account" href="{{ url_for('login') }}">Sign in</a><a class="button button-nav" href="{{ url_for('register') }}">Join free <span>↗</span></a>{% endif %}</div>
+</div></header>
+{% with messages=get_flashed_messages(with_categories=true) %}{% if messages %}<div class="wrap flashes">{% for kind,message in messages %}<div class="flash {{ kind }}">{{ message }}</div>{% endfor %}</div>{% endif %}{% endwith %}
+{% block content %}{% endblock %}
+<footer class="footer"><div class="wrap footer-grid"><div><a class="brand brand-nextgen footer-brand" href="{{ url_for('home') }}" aria-label="NextGen Opportunities Plus home"><img src="{{ url_for('static',filename='nextgen-no-plus.svg') }}" alt="NextGen Opportunities Plus — Discover. Connect. Explore."></a><p>Discover your next step.<br>Make it count, anywhere.</p></div><div class="footer-nav"><span>OPPORTUNITY PATHS</span><a href="{{ url_for('home') }}#discover">Browse opportunities</a><a href="{{ url_for('home',category='scholarship') }}#discover">Scholarships & funding</a><a href="{{ url_for('home',category='job') }}#discover">Careers & internships</a></div><div class="footer-nav"><span>EXPERIENCES</span><a href="{{ url_for('events') }}">Events & conferences</a><a href="{{ url_for('gallery') }}">Community Highlights</a><a href="{{ url_for('home',category='camp') }}#discover">Camps & leadership</a><a href="{{ url_for('programs') }}">Our programs</a></div><div class="footer-nav"><span>YOUR HUB</span><a href="{{ url_for('about') }}">Our story</a><a href="{{ url_for('contact') }}">Contact</a><a href="{{ url_for('dashboard') }}">My Hub</a><a href="{{ url_for('admin') }}">Team access</a></div></div><div class="wrap footer-bottom"><span>© 2026 NextGen Opportunities Plus</span><span>Discover. Connect. Explore.</span></div></footer>
+<div class="updates-dialog" id="updates-dialog" role="dialog" aria-modal="true" aria-labelledby="updates-title" hidden><div class="updates-card"><button class="updates-close" type="button" aria-label="Close notification prompt">×</button><div class="eyebrow">STAY IN THE LOOP</div><h2 id="updates-title">Want to hear about<br><em>what’s next?</em></h2><p>Get email alerts when new opportunities or events are published. You can unsubscribe at any time.</p><form method="post" action="{{ url_for('subscribe') }}" id="updates-subscribe-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label for="updates-email">Email address</label><input id="updates-email" type="email" name="email" autocomplete="email" placeholder="you@example.com" required><button class="button button-lime" type="submit">Allow updates <b>↗</b></button></form><button type="button" class="updates-cancel">Not now</button></div></div>
+<script>
+(() => {
+  const dialog = document.getElementById('updates-dialog');
+  if (dialog) {
+    const choiceKey = 'opportunityHubUpdateChoice';
+    const close = (choice) => { try { localStorage.setItem(choiceKey, choice); } catch (_) {} dialog.hidden = true; };
+    if (!localStorage.getItem(choiceKey)) window.setTimeout(() => { dialog.hidden = false; }, 1800);
+    dialog.querySelector('.updates-close').addEventListener('click', () => close('declined'));
+    dialog.querySelector('.updates-cancel').addEventListener('click', () => close('declined'));
+    dialog.addEventListener('click', (event) => { if (event.target === dialog) close('declined'); });
+    dialog.querySelector('#updates-subscribe-form').addEventListener('submit', () => { try { localStorage.setItem(choiceKey, 'allowed'); } catch (_) {} });
+  }
+  const timers = [...document.querySelectorAll('[data-countdown]')];
+  const render = () => {
+    const now = Date.now();
+    timers.forEach((timer) => {
+      const target = Date.parse(timer.dataset.countdown);
+      const isEvent = timer.dataset.countdownKind === 'event';
+      if (!Number.isFinite(target)) {
+        timer.textContent = isEvent ? 'Event date/time unavailable' : 'Application deadline not specified';
+        timer.classList.add('countdown-muted');
+        return;
+      }
+      const diff = target - now;
+      if (diff <= 0) {
+        timer.textContent = isEvent ? 'Event has started' : 'Application window closed';
+        timer.classList.add('countdown-ended');
+        const action = timer.closest('.detail-layout')?.querySelector('.apply-card .button');
+        if (action) {
+          if (action.tagName === 'A') { action.removeAttribute('href'); action.setAttribute('aria-disabled', 'true'); }
+          else action.disabled = true;
+          action.textContent = isEvent ? 'Event has started' : 'Application window closed';
+        }
+        return;
+      }
+      const seconds = Math.floor(diff / 1000);
+      const days = Math.floor(seconds / 86400);
+      const hours = Math.floor((seconds % 86400) / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const secs = seconds % 60;
+      const clock = `${days}d ${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m ${String(secs).padStart(2, '0')}s`;
+      timer.textContent = `${isEvent ? 'Starts in' : 'Closes in'} ${clock}`;
+    });
+  };
+  render();
+  if (timers.length) window.setInterval(render, 1000);
+})();
+</script>
+</body></html>
