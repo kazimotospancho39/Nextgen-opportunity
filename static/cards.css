@@ -1,13 +1,13 @@
-/* Pale navy glass cards over the existing pink/red site canvas. */
+/* Clean medium-dark blue card surfaces over the existing pink/red site canvas. */
 :root {
   --navy-accent: #102c4a;
   --card-ink: #ffffff;
   --card-muted: #dce8f5;
-  --card-border: rgba(255, 255, 255, .27);
+  --card-border: rgba(91, 183, 205, .22);
   --card-texture:
-    radial-gradient(ellipse at 12% 8%, rgba(255,255,255,.17), transparent 42%),
-    repeating-linear-gradient(135deg, rgba(255,255,255,.13) 0 1px, transparent 1px 11px),
-    linear-gradient(135deg, #102c4a 0%, #193e63 100%);
+    radial-gradient(ellipse 112% 106% at 112% -11%, transparent 66%, rgba(103,205,212,.12) 66.2%, transparent 66.6%),
+    radial-gradient(ellipse 88% 82% at 86% 2%, transparent 68%, rgba(103,205,212,.08) 68.2%, transparent 68.6%),
+    linear-gradient(112deg, #0b203a 0%, #103b5c 54%, #0d5d70 100%);
 }
 
 :is(
@@ -27,10 +27,10 @@
   .about-content > div:first-child, .contact-layout > div:first-child
 ):not(.pathway-cards) {
   color: var(--card-ink) !important;
-  background-color: #102c4a !important;
+  background-color: #0b203a !important;
   background-image: var(--card-texture) !important;
   border-color: var(--card-border) !important;
-  box-shadow: 0 16px 38px rgba(10,24,42,.24), inset 0 1px 0 rgba(255,255,255,.28) !important;
+  box-shadow: 0 16px 38px rgba(10,24,42,.24) !important;
   backdrop-filter: blur(16px) saturate(125%);
   -webkit-backdrop-filter: blur(16px) saturate(125%);
 }
@@ -188,19 +188,19 @@
 
 :is(.notification-item,.participant-row,.manage-row,.media-admin-row,.application-review-card,.event-preview-card,.event-row):hover {
   border-color: rgba(16,44,74,.42) !important;
-  box-shadow: 0 18px 40px rgba(16,44,74,.18), inset 0 1px 0 rgba(255,255,255,.98) !important;
+  box-shadow: 0 18px 40px rgba(16,44,74,.22) !important;
 }
 
 :is(.contact-form,.learning-locked) {
   color: var(--card-ink);
-  background-color: #102c4a;
+  background-color: #0b203a;
   background-image: var(--card-texture);
   border: 1px solid var(--card-border);
-  box-shadow: 0 16px 38px rgba(10,24,42,.24), inset 0 1px 0 rgba(255,255,255,.28);
+  box-shadow: 0 16px 38px rgba(10,24,42,.24);
   backdrop-filter: blur(16px) saturate(125%);
   -webkit-backdrop-filter: blur(16px) saturate(125%);
 }
-.opportunity-extra-fields{color:#fff;background-color:#102c4a!important;background-image:var(--card-texture)!important;border-color:var(--card-border)!important;box-shadow:0 14px 34px rgba(10,24,42,.22),inset 0 1px 0 rgba(255,255,255,.25)}
+.opportunity-extra-fields{color:#fff;background-color:#0b203a!important;background-image:var(--card-texture)!important;border-color:var(--card-border)!important;box-shadow:0 14px 34px rgba(10,24,42,.22)}
 .opportunity-extra-fields>summary,.opportunity-extra-grid>label{color:#fff!important}
 .opportunity-extra-grid :is(input,select,textarea){background:rgba(255,255,255,.97)!important;color:#102a46!important;border-color:rgba(16,44,74,.28)!important}
 .contact-form :is(label,h1,h2,h3,b,strong),.learning-locked :is(span,p){color:var(--card-ink)!important}
@@ -208,6 +208,8 @@
 .learning-locked a{color:#fff!important}
 .pathway-card :is(.pathway-number,.pathway-art,.art-events,.art-work),.pathway-card>i{color:#fff!important}
 .event-stamp :is(span,b),.notification-mark{color:#fff!important}
+:is([class*="-card"],[class*="-panel"],.region-card,.service-list article,.contact-form,.learning-locked,.hero-copy,.section-head,.event-row,.admin-record,.manage-row,.dash-row,.application-review-card,.notification-item,.notification-preferences,.notifications-feed,.participants-panel,.participant-row,.signal-row,.empty-state,.directory-empty,.pathway-card) .button-dark{background:#078a8d;color:#fff}
+:is([class*="-card"],[class*="-panel"],.region-card,.service-list article,.contact-form,.learning-locked,.hero-copy,.section-head,.event-row,.admin-record,.manage-row,.dash-row,.application-review-card,.notification-item,.notification-preferences,.notifications-feed,.participants-panel,.participant-row,.signal-row,.empty-state,.directory-empty,.pathway-card) .button-dark:hover{background:#0b9da0}
 
 @media (prefers-reduced-motion: reduce) {
   :is(.notification-item,.participant-row,.manage-row,.media-admin-row,.application-review-card,.event-preview-card,.event-row) { transition: none; }
