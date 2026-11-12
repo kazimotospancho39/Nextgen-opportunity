@@ -203,3 +203,6 @@ body{background:radial-gradient(ellipse at 12% 0%,#F8DCE8 0,transparent 35%),rad
 .content-media-item{overflow:hidden}
 .admin-stat{background-color:rgba(255,255,255,.72)}
 @media(prefers-reduced-motion:reduce){:is(.opportunity-card,.event-card,.region-card,.media-card,.gallery-empty,.info-body,.account-panel,.payment-card,.admin-panel,.admin-stat,.admin-content-card,.updates-card){transition:none}}
+
+/* Subtle burgundy curves sweep diagonally across the pink canvas */
+body{background-color:var(--paper);background-image:radial-gradient(ellipse at 12% 0%,#F8DCE8 0,transparent 38%),radial-gradient(ellipse at 92% 22%,#F2E7EE 0,transparent 34%),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='620' viewBox='0 0 900 620'%3E%3Cg fill='none' stroke='%23551724' stroke-opacity='.14' stroke-width='7'%3E%3Cpath d='M-180 210 C30 20 180 30 330 190 S590 390 820 160 S1080 20 1190 110'/%3E%3Cpath d='M-220 390 C0 200 160 210 320 370 S600 570 830 340 S1080 200 1210 290'/%3E%3Cpath d='M-170 570 C40 380 200 390 360 550 S640 750 870 520 S1120 380 1240 470'/%3E%3C/g%3E%3C/svg%3E");background-size:auto,auto,900px 620px;background-position:center,center,left top;background-repeat:no-repeat,no-repeat,repeat}
