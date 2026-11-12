@@ -167,3 +167,39 @@ body{background:var(--paper);color:var(--black)}
 .updates-card input,.admin-form input,.admin-form textarea,.admin-form select{border-color:var(--line)}
 .updates-card input:focus,.admin-form input:focus,.admin-form textarea:focus,.admin-form select:focus{border-color:var(--dark-orange);outline-color:var(--dark-orange)}
 .button[disabled],.payment-card .button:disabled{background:#687788;color:#fff}
+
+/* Pink glass refresh */
+:root{--pink:#E879A8;--pink-soft:#F8DCE8;--dark-blue:#7D2031;--forest:var(--dark-blue);--forest2:#551724;--peach:var(--pink);--paper:#F8F0F4;--light-blue:#F2E7EE;--line:#E6CAD7;--coral:#B9531B}
+body{background:radial-gradient(ellipse at 12% 0%,#F8DCE8 0,transparent 35%),radial-gradient(ellipse at 90% 20%,#F2E7EE 0,transparent 30%),var(--paper)}
+.header{background:#F8F0F4E8;border-bottom-color:#7D203126;backdrop-filter:blur(18px)}
+.brand-mark{background:var(--pink);color:#551724}.brand-mark span{color:var(--dark-blue)}
+.button-nav,.button-dark,.category-tab.active{background:var(--dark-blue);color:#fff}
+.button-dark:hover,.button-nav:hover{background:#551724}
+.hero,.info-hero,.dashboard-banner,.admin-top{background:linear-gradient(130deg,#551724,#7D2031 60%,#9B3752);color:#fff}
+.pathways,.mega-feature{background:linear-gradient(135deg,#551724,#7D2031);color:#fff}
+.hero-copy>p,.info-hero p,.admin-top p,.dashboard-banner p{color:#F8E8EE}
+.footer{background:#171114;color:#fff}
+.tag-internship,.tag-job{background:#F8DCE8;color:#6B1830}
+.personal-board,.countdown-large,.signal,.global-locations,.media-showcase,.alerts,.info-cta,.payment-page{background:#F2E7EE}
+.region-card,.region-card:hover,.region-card.active{background:#FFFFFFB8}
+.media-kind{background:#551724E8;color:#fff}
+.visual-label{background:var(--pink);color:#551724}
+.brand-nextgen img{filter:none}
+
+/* Consistent translucent cards across public, account, payment and admin pages */
+[class*="card"],[class*="panel"],.region-card,.service-list article,.gallery-empty,.content-media-item,.search-form{
+  background-color:rgba(255,255,255,.72);
+  border-color:rgba(125,32,49,.16);
+  box-shadow:0 14px 38px rgba(62,20,36,.09),inset 0 1px 0 rgba(255,255,255,.82);
+  backdrop-filter:blur(16px) saturate(135%);
+  -webkit-backdrop-filter:blur(16px) saturate(135%);
+}
+:is(.opportunity-card,.event-card,.region-card,.media-card,.gallery-empty,.info-body,.account-panel,.payment-card,.admin-panel,.admin-stat,.admin-content-card,.updates-card,.search-form,.content-media-item){
+  border:1px solid rgba(125,32,49,.16);
+  border-radius:18px;
+}
+:is(.opportunity-card,.event-card,.region-card,.media-card,.gallery-empty,.info-body,.account-panel,.payment-card,.admin-panel,.admin-stat,.admin-content-card,.updates-card){transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}
+:where(.opportunity-card,.event-card,.region-card,.media-card):hover{transform:translateY(-3px);box-shadow:0 20px 46px rgba(62,20,36,.15),inset 0 1px 0 rgba(255,255,255,.9);border-color:rgba(232,121,168,.55)}
+.content-media-item{overflow:hidden}
+.admin-stat{background-color:rgba(255,255,255,.72)}
+@media(prefers-reduced-motion:reduce){:is(.opportunity-card,.event-card,.region-card,.media-card,.gallery-empty,.info-body,.account-panel,.payment-card,.admin-panel,.admin-stat,.admin-content-card,.updates-card){transition:none}}
