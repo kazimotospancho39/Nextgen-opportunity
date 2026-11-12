@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import secrets
 import smtplib
-from datetime import datetime, time, timezone
+from datetime import datetime, time, timedelta, timezone
 from decimal import Decimal
 from email.message import EmailMessage
 from pathlib import Path
@@ -383,6 +383,48 @@ def home():
     else:
         query = query.order_by(Opportunity.featured.desc(), Opportunity.created_at.desc())
     return render_template("home.html", opportunities=query.limit(8).all(), events=Event.query.filter_by(active=True).order_by(Event.start_at).limit(3).all(), media_items=MediaItem.query.filter_by(show_on_home=True).order_by(MediaItem.created_at.desc()).limit(4).all(), page_media=content_media_for("page", "home"), copy=page_copy("home"), selected_category=category, selected_region=region, search=q, counts={"opportunities": Opportunity.query.filter_by(active=True).count(), "events": Event.query.filter_by(active=True).count()})
+
+
+@app.get("/opportunities")
+def opportunities():
+    """Search the full active global opportunity directory."""
+    category = request.args.get("category", "")
+    region = request.args.get("region", "")
+    level = request.args.get("level", "").strip()
+    mode = request.args.get("mode", "")
+    cost = request.args.get("cost", "")
+    deadline_filter = request.args.get("deadline", "")
+    q = request.args.get("q", "").strip()
+
+    query = Opportunity.query.filter_by(active=True)
+    if category in CATEGORIES:
+        query = query.filter_by(category=category)
+    if region in REGIONS:
+        query = query.filter(or_(*[
+            field.ilike(f"%{term}%")
+            for field in (Opportunity.location, Opportunity.summary, Opportunity.description, Opportunity.eligibility)
+            for term in REGIONS[region]
+        ]))
+    if level:
+        query = query.filter(Opportunity.level.ilike(f"%{level}%"))
+    if q:
+        like = f"%{q}%"
+        query = query.filter(or_(Opportunity.title.ilike(like), Opportunity.summary.ilike(like), Opportunity.location.ilike(like), Opportunity.description.ilike(like), Opportunity.eligibility.ilike(like)))
+
+    items = query.order_by(Opportunity.featured.desc(), Opportunity.created_at.desc()).all()
+    if mode in {"online", "in_person"}:
+        online_terms = ("online", "remote", "virtual", "worldwide")
+        items = [item for item in items if any(term in item.location.lower() for term in online_terms) == (mode == "online")]
+    if cost == "free":
+        items = [item for item in items if not item.application_fee_tzs]
+    elif cost == "paid":
+        items = [item for item in items if item.application_fee_tzs]
+    if deadline_filter == "open":
+        items = [item for item in items if not countdown_expired(item.deadline, True)]
+    elif deadline_filter == "closing_soon":
+        now = datetime.now(timezone.utc)
+        items = [item for item in items if (lambda instant: instant is not None and now < instant <= now + timedelta(days=30))(datetime.fromisoformat(countdown_datetime(item.deadline, True).replace("Z", "+00:00")) if countdown_datetime(item.deadline, True) else None)]
+    return render_template("opportunities.html", opportunities=items, selected_category=category, selected_region=region, selected_level=level, selected_mode=mode, selected_cost=cost, selected_deadline=deadline_filter, search=q)
 
 
 @app.get("/gallery")
@@ -908,3 +950,4 @@ with app.app_context():
 
 if __name__ == "__main__":
     app.run(debug=os.getenv("FLASK_DEBUG", "false").lower() == "true")
+
