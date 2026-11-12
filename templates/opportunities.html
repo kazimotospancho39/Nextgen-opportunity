@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}Global opportunities · NextGen Opportunities Plus{% endblock %}
+{% block content %}
+<main class="opportunities-page">
+  <section class="opportunities-intro"><div class="wrap opportunities-intro-card">
+    <div class="eyebrow">YOUR NEXT CHAPTER STARTS HERE</div>
+    <h1>Find your next<br><em>opportunity.</em></h1>
+    <p>Explore scholarships, fellowships, jobs, internships, grants, training and leadership experiences from around the world.</p>
+  </div></section>
+  <section class="opportunities-directory"><div class="wrap">
+    <div class="directory-heading"><div><div class="eyebrow">GLOBAL DISCOVERY</div><h2>Explore what’s <em>possible.</em></h2></div><span class="directory-count">{{ opportunities|length }} matching {{ 'opportunity' if opportunities|length == 1 else 'opportunities' }}</span></div>
+    <form class="directory-filters" method="get" action="{{ url_for('opportunities') }}">
+      <label class="directory-search"><span>Search opportunities</span><input type="search" name="q" value="{{ search }}" placeholder="Keyword, field or country"></label>
+      <label><span>Type</span><select name="category"><option value="">All types</option>{% for key,label in categories.items() %}<option value="{{ key }}" {% if selected_category==key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+      <label><span>Region</span><select name="region"><option value="">Anywhere</option>{% for key,terms in regions.items() %}<option value="{{ key }}" {% if selected_region==key %}selected{% endif %}>{{ key|replace('_',' ')|title }}</option>{% endfor %}</select></label>
+      <label><span>For</span><select name="level"><option value="">Any level</option>{% for value in ['High school','Undergraduate','Graduate','Early career','Professional','All levels'] %}<option value="{{ value }}" {% if selected_level==value %}selected{% endif %}>{{ value }}</option>{% endfor %}</select></label>
+      <label><span>Format</span><select name="mode"><option value="">Any format</option><option value="online" {% if selected_mode=='online' %}selected{% endif %}>Online or remote</option><option value="in_person" {% if selected_mode=='in_person' %}selected{% endif %}>In person</option></select></label>
+      <label><span>Application fee</span><select name="cost"><option value="">Any cost</option><option value="free" {% if selected_cost=='free' %}selected{% endif %}>Free to apply</option><option value="paid" {% if selected_cost=='paid' %}selected{% endif %}>Fee required</option></select></label>
+      <label><span>Deadline</span><select name="deadline"><option value="">Any deadline</option><option value="open" {% if selected_deadline=='open' %}selected{% endif %}>Still open</option><option value="closing_soon" {% if selected_deadline=='closing_soon' %}selected{% endif %}>Closes within 30 days</option></select></label>
+      <div class="directory-filter-actions"><button class="button button-dark">Apply filters <b>↗</b></button><a href="{{ url_for('opportunities') }}">Clear all</a></div>
+    </form>
+    <div class="opportunity-grid directory-grid">{% for item in opportunities %}
+      <article class="opportunity-card"><div class="op-card-top"><span class="tag tag-{{ item.category }}">{{ categories[item.category] }}</span>{% if item.featured %}<span class="featured-tag">✳ FEATURED</span>{% endif %}</div><h3><a href="{{ url_for('opportunity_detail',slug=item.slug) }}">{{ item.title }}</a></h3><p>{{ item.summary }}</p><div class="card-facts"><span>⌖ {{ item.location }}</span><span>◷ {{ item.deadline }}</span></div><div class="countdown" data-countdown="{{ countdown_datetime(item.deadline, true) }}" data-countdown-kind="deadline">Loading deadline countdown…</div><div class="op-card-bottom"><span>{% if item.application_fee_tzs %}{{ money(item.application_fee_tzs) }} <small>application fee</small>{% else %}No application fee{% endif %}</span><a href="{{ url_for('opportunity_detail',slug=item.slug) }}">View details <b>↗</b></a></div></article>
+    {% else %}<div class="directory-empty"><span>✳</span><h3>No matches this time</h3><p>Try a wider region or clear one of your filters to see more opportunities.</p><a class="button button-dark" href="{{ url_for('opportunities') }}">Show all opportunities ↗</a></div>{% endfor %}</div>
+  </div></section>
+</main>
+{% endblock %}
+
