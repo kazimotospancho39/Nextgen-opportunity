@@ -236,3 +236,12 @@ body{background-color:var(--pink);background-image:var(--wide-curves);background
 .hero-copy>p,.info-hero p,.dashboard-banner p,.admin-top p,.pathways-layout>div:first-child>p{color:#39404A}
 .hero-foot{margin-top:14px;padding:0 8px}
 @media(max-width:650px){.hero-copy,.section-head,.global-locations-head,.media-showcase-head,.gallery-intro,.alerts-layout>div:first-child,.form-heading,.about-content>div:first-child,.contact-layout>div:first-child{padding:18px;border-radius:17px}.hero-copy{padding-left:18px}.signal-row{padding:14px;border-radius:14px;height:auto;min-height:77px}}
+
+/* Dark blue is an added accent; the existing pink/red surfaces and artwork stay in place. */
+:root{--navy-accent:#102C4A}
+.button-nav{box-shadow:inset 0 -3px 0 var(--navy-accent)}
+.category-tab.active{border-color:var(--navy-accent)}
+.nav-media-link{border-left:2px solid var(--navy-accent)}
+.region-card>i{color:var(--navy-accent)}
+.opportunity-card:hover,.event-preview-card:hover,.media-card:hover{border-color:var(--navy-accent)}
+:is(a,button,input,select,textarea):focus-visible{outline:2px solid var(--navy-accent);outline-offset:3px}
