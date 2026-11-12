@@ -204,9 +204,17 @@ body{background:radial-gradient(ellipse at 12% 0%,#F8DCE8 0,transparent 35%),rad
 .admin-stat{background-color:rgba(255,255,255,.72)}
 @media(prefers-reduced-motion:reduce){:is(.opportunity-card,.event-card,.region-card,.media-card,.gallery-empty,.info-body,.account-panel,.payment-card,.admin-panel,.admin-stat,.admin-content-card,.updates-card){transition:none}}
 
-/* Subtle burgundy curves sweep diagonally across the pink canvas */
-body{background-color:var(--paper);background-image:radial-gradient(ellipse at 12% 0%,#F8DCE8 0,transparent 38%),radial-gradient(ellipse at 92% 22%,#F2E7EE 0,transparent 34%),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='620' viewBox='0 0 900 620'%3E%3Cg fill='none' stroke='%23551724' stroke-opacity='.14' stroke-width='7'%3E%3Cpath d='M-180 210 C30 20 180 30 330 190 S590 390 820 160 S1080 20 1190 110'/%3E%3Cpath d='M-220 390 C0 200 160 210 320 370 S600 570 830 340 S1080 200 1210 290'/%3E%3Cpath d='M-170 570 C40 380 200 390 360 550 S640 750 870 520 S1120 380 1240 470'/%3E%3C/g%3E%3C/svg%3E");background-size:auto,auto,900px 620px;background-position:center,center,left top;background-repeat:no-repeat,no-repeat,repeat}
-
-/* Make diagonal curves visible across every pink page section */
-body{background-color:var(--paper);background-image:radial-gradient(ellipse at 12% 0%,#F8DCE8 0,transparent 38%),radial-gradient(ellipse at 92% 22%,#F2E7EE 0,transparent 34%),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='620' viewBox='0 0 900 620'%3E%3Cg fill='none' stroke='%23551724' stroke-opacity='.28' stroke-width='9'%3E%3Cpath d='M-180 210 C30 20 180 30 330 190 S590 390 820 160 S1080 20 1190 110'/%3E%3Cpath d='M-220 390 C0 200 160 210 320 370 S600 570 830 340 S1080 200 1210 290'/%3E%3Cpath d='M-170 570 C40 380 200 390 360 550 S640 750 870 520 S1120 380 1240 470'/%3E%3C/g%3E%3C/svg%3E");background-size:auto,auto,900px 620px;background-position:center,center,left top;background-repeat:no-repeat,no-repeat,repeat}
-.section-pad,.discover,.event-preview,.info-body,.content-media-section,.signal,.global-locations,.media-showcase,.alerts,.info-cta,.payment-page,.detail-page{background-color:var(--paper);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='620' viewBox='0 0 900 620'%3E%3Cg fill='none' stroke='%23551724' stroke-opacity='.28' stroke-width='9'%3E%3Cpath d='M-180 210 C30 20 180 30 330 190 S590 390 820 160 S1080 20 1190 110'/%3E%3Cpath d='M-220 390 C0 200 160 210 320 370 S600 570 830 340 S1080 200 1210 290'/%3E%3Cpath d='M-170 570 C40 380 200 390 360 550 S640 750 870 520 S1120 380 1240 470'/%3E%3C/g%3E%3C/svg%3E");background-size:900px 620px;background-position:left top;background-repeat:repeat}
+/* Strong pink canvas with wide burgundy diagonals across content surfaces */
+:root{--paper:#E879A8;--pink:#E879A8;--pink-soft:#F4A8C4;--red-curve:#7D2031;--wide-curves:url('/static/pink-diagonal-waves.svg')}
+body{background-color:var(--pink);background-image:var(--wide-curves);background-size:cover;background-position:center top;background-repeat:no-repeat}
+.hero,.info-hero,.dashboard-banner,.admin-top,.pathways,.mega-feature,.signal,.section-pad,.discover,.event-preview,.global-locations,.media-showcase,.alerts,.info-body,.info-cta,.detail-page,.form-page,.contact-page,.account-page,.payment-page,.content-media-section,main{background-color:var(--pink);background-image:var(--wide-curves);background-size:cover;background-position:center top;background-repeat:no-repeat}
+.hero,.info-hero,.dashboard-banner,.admin-top,.pathways,.mega-feature{color:var(--black)}
+.hero-copy>p,.info-hero p,.dashboard-banner p,.admin-top p,.pathways-layout>div:first-child>p{color:#42101D}
+.hero h1,.info-hero h1,.dashboard-banner h1,.admin-top h1,.pathways h2{color:#321019}
+.hero h1 em,.info-hero h1 em,.dashboard-banner h1 em,.pathways h2 em{color:#7D2031}
+.hero-foot,.quiet-link,.hero-proof{color:#42101D}
+.hero-proof strong{color:#111318}
+.button-outline-dark,.button-glass{border-color:#7D203166;color:#42101D}
+.category-rail{border-bottom-color:#7D203133}
+.event-preview-card,.pathway-card{background-color:rgba(255,255,255,.30)}
+.footer{background:#171114;color:#fff}
