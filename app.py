@@ -62,6 +62,14 @@ REGIONS = {
     "mena": ("Middle East", "North Africa", "Morocco", "Egypt", "Jordan"),
     "online": ("online", "remote", "virtual", "worldwide"),
 }
+REGION_LABELS = {
+    "africa": "Africa",
+    "americas": "Americas",
+    "asia": "Asia",
+    "europe": "Europe",
+    "mena": "Middle East & North Africa",
+    "online": "Online",
+}
 PAGES = {"home": "Homepage", "about": "About Opportunity Hub", "programs": "Programs & services", "contact": "Contact"}
 
 
@@ -442,7 +450,7 @@ def seed_data():
 def inject_site_context():
     user = db.session.get(User, session.get("user_id")) if session.get("user_id") else None
     unread_notifications = UserNotification.query.filter_by(user_id=user.id, read_at=None).count() if user else 0
-    return {"categories": CATEGORIES, "regions": REGIONS, "site_user": user, "unread_notification_count": unread_notifications, "is_admin": bool(session.get("admin")), "page_names": PAGES, "payment_currency": PAYMENT_CURRENCY, "money": format_money, "countdown_datetime": countdown_datetime}
+    return {"categories": CATEGORIES, "regions": REGIONS, "region_labels": REGION_LABELS, "site_user": user, "unread_notification_count": unread_notifications, "is_admin": bool(session.get("admin")), "page_names": PAGES, "payment_currency": PAYMENT_CURRENCY, "money": format_money, "countdown_datetime": countdown_datetime}
 
 
 def format_money(value: int, currency: str | None = None) -> str:

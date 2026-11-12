@@ -104,16 +104,17 @@
   .attached-content-media, .participants-panel, .participant-row,
   .notifications-empty
 ):not(.pathway-cards) :is(input,select,textarea) {
-  background: rgba(255,255,255,.97) !important;
+  background: #f4a8c4 !important;
   color: #102a46 !important;
   border-color: rgba(16,44,74,.28) !important;
 }
 
 :is(.tag,.featured-tag,.status) {
-  background-color: rgba(255,255,255,.88) !important;
+  background-color: #f4a8c4 !important;
   color: var(--navy-accent) !important;
   border: 1px solid rgba(16,44,74,.2);
 }
+.card-facts{padding:10px 12px;border-radius:9px;background:#b74173!important}
 
 :is(
   [class*="-card"], [class*="-panel"], .admin-stat, .admin-content-card,
@@ -202,9 +203,9 @@
 }
 .opportunity-extra-fields{color:#fff;background-color:#0b203a!important;background-image:var(--card-texture)!important;border-color:var(--card-border)!important;box-shadow:0 14px 34px rgba(10,24,42,.22)}
 .opportunity-extra-fields>summary,.opportunity-extra-grid>label{color:#fff!important}
-.opportunity-extra-grid :is(input,select,textarea){background:rgba(255,255,255,.97)!important;color:#102a46!important;border-color:rgba(16,44,74,.28)!important}
+.opportunity-extra-grid :is(input,select,textarea){background:#f4a8c4!important;color:#102a46!important;border-color:rgba(16,44,74,.28)!important}
 .contact-form :is(label,h1,h2,h3,b,strong),.learning-locked :is(span,p){color:var(--card-ink)!important}
-.contact-form :is(input,select,textarea){background:rgba(255,255,255,.97)!important;color:#102a46!important;border-color:rgba(16,44,74,.28)!important}
+.contact-form :is(input,select,textarea){background:#f4a8c4!important;color:#102a46!important;border-color:rgba(16,44,74,.28)!important}
 .learning-locked a{color:#fff!important}
 .pathway-card :is(.pathway-number,.pathway-art,.art-events,.art-work),.pathway-card>i{color:#fff!important}
 .event-stamp :is(span,b),.notification-mark{color:#fff!important}
