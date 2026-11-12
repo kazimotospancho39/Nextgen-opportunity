@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Learning Centre · NextGen Opportunities Plus{% endblock %}
+{% block content %}
+<main class="learning-page">
+  <section class="info-hero"><div class="wrap"><div class="eyebrow">LEARN · PRACTISE · GROW</div><h1>Ideas you can<br><em>put to work.</em></h1><p>Original learning resources from the NextGen community: practical guides, lessons, articles and notes for your next step.</p></div></section>
+  <section class="learning-library"><div class="wrap">
+    <div class="directory-heading"><div><span class="eyebrow dark-eyebrow">THE LEARNING CENTRE</span><h2>Build skills at<br><em>your own pace.</em></h2></div><span class="directory-count">{{ resources|length }} resources</span></div>
+    <nav class="learning-filters" aria-label="Filter learning resources"><a class="{% if not selected_type %}active{% endif %}" href="{{ url_for('learning_centre') }}">All learning</a>{% for key,label in learning_types.items() %}<a class="{% if selected_type==key %}active{% endif %}" href="{{ url_for('learning_centre',type=key) }}">{{ label }}</a>{% endfor %}</nav>
+    <div class="learning-grid">
+      {% for item in resources %}<article class="learning-card"><div class="learning-card-top"><span>{{ learning_types[item.resource_type] }}</span><small>{{ item.category }}</small></div><h3>{{ item.title }}</h3><p>{{ item.summary }}</p>
+        {% if item.audience=='members' and not is_member %}<div class="learning-locked"><span>MEMBER RESOURCE</span><p>Sign in or create a free account to open this resource.</p><a href="{{ url_for('login',next=url_for('learning_centre')) }}">Sign in ↗</a> <a href="{{ url_for('register') }}">Join free ↗</a></div>
+        {% else %}{% if item.content %}<div class="learning-content">{{ item.content }}</div>{% endif %}{% if item.resource_url %}{% if item.resource_type=='audio' %}<audio controls preload="none" src="{{ item.resource_url }}">Your browser does not support audio.</audio>{% elif item.resource_type=='video' and item.resource_url.lower().endswith(('.mp4','.webm','.ogg')) %}<video controls preload="metadata" src="{{ item.resource_url }}">Your browser does not support video.</video>{% else %}<a class="button button-dark learning-open" href="{{ item.resource_url }}" target="_blank" rel="noopener noreferrer">{% if item.resource_type=='note' %}Open learning note{% elif item.resource_type=='video' %}Watch lesson{% elif item.resource_type=='audio' %}Listen to lesson{% else %}Open resource{% endif %} ↗</a>{% endif %}{% endif %}{% endif %}
+      </article>{% else %}<div class="directory-empty"><span>✳</span><h3>Learning resources are on the way.</h3><p>Check back for practical lessons and original guides from the community.</p></div>{% endfor %}
+    </div>
+  </div></section>
+</main>
+{% endblock %}

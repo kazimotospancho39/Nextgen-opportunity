@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}Edit {{ event.title }} · Content studio{% endblock %}
+{% block content %}
+<main class="admin-page">
+  <header class="admin-top"><div class="wrap admin-top-row"><div><div class="eyebrow">OPPORTUNITY HUB · EVENT MANAGEMENT</div><h1>Edit event.</h1><p>Changes save to this event page. The event URL stays the same.</p></div><div class="admin-top-actions"><a class="button button-glass" href="{{ url_for('admin') }}#manage-events">Back to events ↗</a></div></div></header>
+  <section class="wrap admin-event-edit-content"><div class="admin-panel admin-event-edit-card"><div class="panel-heading"><span class="panel-no">06</span><div><span class="eyebrow dark-eyebrow">EVENT DETAILS</span><h2>{{ event.title }}</h2><p>{{ registration_count }} existing registration{{ '' if registration_count==1 else 's' }}. Capacity cannot be set below this number.</p></div></div>
+    <form method="post" action="{{ url_for('admin_edit_event',event_id=event.id) }}" enctype="multipart/form-data" class="admin-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>Event title<input name="title" maxlength="180" value="{{ event.title }}" required></label>
+      <div class="admin-two"><label>Experience type<input name="event_type" maxlength="60" value="{{ event.event_type }}"></label><label>Start date & time (UTC)<input name="start_at" value="{{ event.start_at }}" placeholder="10 December 2026 · 10:00 UTC" required></label></div>
+      <div class="admin-two"><label>End date & time (UTC, optional)<input name="end_at" value="{{ event.end_at }}" placeholder="10 December 2026 · 13:00 UTC"></label><label>Location<input name="location" maxlength="180" value="{{ event.location }}"></label></div>
+      <div class="admin-two"><label>Capacity<input type="number" name="capacity" min="{{ [1,registration_count]|max }}" value="{{ event.capacity }}" required></label><label>Ticket price ({{ payment_currency }})<input type="number" name="fee_amount" min="0" value="{{ event.ticket_price_tzs }}" required></label></div>
+      <label>Short summary<textarea name="summary" rows="2" maxlength="300" required>{{ event.summary }}</textarea></label>
+      <label>Full event description<textarea name="description" rows="6">{{ event.description }}</textarea></label>
+      <label>Add photos or videos<input type="file" name="content_media" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" multiple><small>Optional. New uploads appear on this event page.</small></label>
+      <label>Caption for new media<input name="media_caption" maxlength="500" placeholder="Optional caption"></label>
+      <div class="admin-event-edit-actions"><button class="button button-dark">Save event changes ↗</button><a class="mini-button" href="{{ url_for('event_detail',slug=event.slug) }}" target="_blank" rel="noopener">Preview event page</a></div>
+    </form>
+    {% if content_media %}<div class="admin-event-media"><b>Media currently attached</b><div>{% for item in content_media %}<span>{{ item.media_type|title }} · {{ item.title }}</span>{% endfor %}</div></div>{% endif %}
+  </div></section>
+</main>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}Updates · NextGen Opportunities Plus{% endblock %}
+{% block content %}
+<main class="notifications-page">
+  <section class="notifications-hero"><div class="wrap"><div class="eyebrow">YOUR OPPORTUNITY HUB</div><h1>Updates that<br><em>keep you moving.</em></h1><p>New opportunities, event news, application decisions and reminders in one place.</p></div></section>
+  <section class="notifications-content"><div class="wrap notifications-layout">
+    <div class="notifications-feed">
+      <div class="notifications-heading"><div><span class="eyebrow dark-eyebrow">YOUR ACTIVITY</span><h2>Notifications <span>{{ unread_count }}</span></h2></div>
+        {% if unread_count %}<form method="post" action="{{ url_for('mark_all_notifications_read') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="text-arrow">Mark all as read</button></form>{% endif %}
+      </div>
+      {% if notifications %}<div class="notification-list">{% for item in notifications %}<article class="notification-item {% if not item.read_at %}unread{% endif %}"><span class="notification-mark">{% if item.notification_type=='opportunity' %}✳{% elif item.notification_type=='event' %}◌{% elif item.notification_type=='payment' %}◉{% else %}↗{% endif %}</span><div class="notification-copy"><div class="notification-meta"><span>{{ item.notification_type|title }} update</span><time>{{ item.created_at.strftime('%d %b %Y · %H:%M') }} UTC</time></div><h3>{{ item.title }}</h3><p>{{ item.body }}</p></div><form method="post" action="{{ url_for('mark_notification_read', notification_id=item.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button button-dark">{{ 'Open update' if not item.read_at else 'View' }} <b>↗</b></button></form></article>{% endfor %}</div>{% else %}<div class="notifications-empty"><span>✦</span><h3>You’re all caught up.</h3><p>New opportunities, event updates and application activity will appear here.</p><a class="button button-dark" href="{{ url_for('opportunities') }}">Explore opportunities ↗</a></div>{% endif %}
+    </div>
+    <aside class="notification-preferences"><span class="eyebrow dark-eyebrow">YOUR CHOICES</span><h2>Choose what<br>you hear about.</h2><p>Manage in-app updates for your account.</p><form method="post" action="{{ url_for('update_notification_preferences') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% for field,label,description in [('opportunity_updates','New opportunities','Fresh listings added to the Hub'),('event_updates','Events','New events and registration updates'),('application_updates','Applications','Your application progress and decisions'),('payment_updates','Payments','Checkout confirmation updates'),('deadline_reminders','Reminders','Saved opportunities closing soon and upcoming events')] %}<label class="preference-toggle"><span><b>{{ label }}</b><small>{{ description }}</small></span><input type="checkbox" name="{{ field }}" {% if preferences|attr(field) %}checked{% endif %}><i aria-hidden="true"></i></label>{% endfor %}
+      <button class="button button-dark">Save preferences <b>↗</b></button></form>
+    </aside>
+  </div></section>
+</main>
+{% endblock %}

@@ -5,10 +5,16 @@ NextGen Opportunities Plus is an independent global platform for discovering opp
 ## Features
 
 - Worldwide opportunity discovery: scholarships, fellowships, internships, jobs, grants, leadership camps, training, conferences and exchange programs.
-- Keyword, category and region filters, with online and in-person listings.
+- Global discovery filters for keywords, category, region, destination and applicant countries, education level, funding coverage, study field, age, paid/unpaid status, experience, delivery format, application fee and deadline.
+- Opportunity details can show sponsor, eligibility, funding coverage, required documents, application steps and reviewed source information. An administrator can mark an application as handled by NextGen or send applicants to a listing-specific official provider page; the two reference websites are rejected as source/application destinations.
+- Admins can edit and archive/restore opportunities. Archived listings leave public search while their application records remain available to the team.
+- Application review supports search, filtering, reviewer assignment records, scored notes, status history and an admin-only CSV export.
+- Members can see the status-change timeline for their applications alongside the current stage.
 - Internal member accounts, saved opportunities, application forms, deadline countdowns and progress tracking.
 - Member profile with reusable education, experience, skills, language and interest details; profile-based recommendations and a point-in-time profile snapshot for each new application.
 - Event calendar, live event countdowns, registration windows, capacity tracking and ticketing.
+- Admin event editing for event information, capacity, ticket price and attached media; existing registrants receive an in-app notice when event details change.
+- Learning Centre with admin-published video/audio lessons, articles, practical guides and learning notes, including public or member-only access. Hosted resources use HTTPS URLs.
 - Page-specific admin content, opportunity and event publishing, application review stages, contact inbox and newsletter subscribers.
 - Admins can optionally attach one or more photos or videos to page content, new opportunities and events; attached media appears on the matching public page and can also be managed in the media library.
 - Admin photo and video library with independent homepage and gallery visibility controls. Media files are stored under `static/uploads/media`; uploads are limited to 100 MB per request.
@@ -40,6 +46,8 @@ The app keeps opportunity browsing, application forms, event registration, accou
 ## Content and notifications
 
 Sample opportunities and event information are demonstration content. Replace them with reviewed global listings before launch. Update opt-ins are stored for the team. Emails about newly published opportunities and events are sent only when `SMTP_*` settings are configured.
+
+Signed-in members can review in-app alerts and choose which opportunity, event, application, payment and deadline updates they receive. Deadline reminders are generated when a member opens My Hub; scheduled background delivery and browser push are not configured.
 
 ## Client feedback
 

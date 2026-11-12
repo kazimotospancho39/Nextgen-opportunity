@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import os
 import json
+import csv
+import io
 import secrets
 import smtplib
-from datetime import datetime, time, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
 from email.message import EmailMessage
 from pathlib import Path
@@ -12,7 +14,7 @@ from urllib.parse import urlparse
 
 import requests
 from dotenv import load_dotenv
-from flask import Flask, abort, flash, redirect, render_template, request, session, url_for
+from flask import Flask, Response, abort, flash, redirect, render_template, request, session, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import CSRFProtect
 from sqlalchemy import or_
@@ -51,6 +53,7 @@ CATEGORIES = {
     "grant": "Grants & competitions",
     "training": "Training & exchange",
 }
+APPLICATION_STATUSES = ("Submitted", "Under review", "Shortlisted", "Interview", "Accepted", "Rejected", "Waitlisted", "Withdrawn")
 REGIONS = {
     "africa": ("Africa", "Kenya", "Ghana", "Tanzania", "Uganda", "Rwanda", "Nigeria", "South Africa", "Ethiopia", "Nairobi", "Cape Town"),
     "americas": ("Americas", "United States", "USA", "Canada", "Brazil", "Mexico"),
@@ -111,6 +114,41 @@ class Opportunity(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
 
 
+class OpportunityExtra(db.Model):
+    """Optional discovery and trust details kept separate for existing database compatibility."""
+    opportunity_id = db.Column(db.Integer, db.ForeignKey("opportunity.id", ondelete="CASCADE"), primary_key=True)
+    sponsor = db.Column(db.String(180), nullable=False, default="")
+    destination_country = db.Column(db.String(120), nullable=False, default="")
+    eligible_countries = db.Column(db.Text, nullable=False, default="")
+    funding_type = db.Column(db.String(24), nullable=False, default="unspecified")
+    funding_coverage = db.Column(db.Text, nullable=False, default="")
+    field_of_study = db.Column(db.String(240), nullable=False, default="")
+    age_min = db.Column(db.Integer)
+    age_max = db.Column(db.Integer)
+    paid = db.Column(db.Boolean)
+    experience_required = db.Column(db.Text, nullable=False, default="")
+    opening_date = db.Column(db.Date)
+    expiry_date = db.Column(db.Date)
+    required_documents = db.Column(db.Text, nullable=False, default="")
+    application_procedure = db.Column(db.Text, nullable=False, default="")
+    application_mode = db.Column(db.String(16), nullable=False, default="internal")
+    official_url = db.Column(db.String(1000), nullable=False, default="")
+    source_url = db.Column(db.String(1000), nullable=False, default="")
+    verified = db.Column(db.Boolean, nullable=False, default=False)
+    verified_at = db.Column(db.DateTime)
+    archived = db.Column(db.Boolean, nullable=False, default=False, index=True)
+    opportunity = db.relationship("Opportunity", backref=db.backref("extra", uselist=False))
+
+
+FUNDING_TYPES = {
+    "fully_funded": "Fully funded",
+    "partially_funded": "Partially funded",
+    "self_funded": "Self-funded",
+    "unfunded": "Unfunded",
+    "unspecified": "Funding varies / not specified",
+}
+
+
 class Event(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     slug = db.Column(db.String(180), unique=True, nullable=False, index=True)
@@ -147,6 +185,33 @@ class ApplicationProfileSnapshot(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
 
 
+class ApplicationReview(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    application_id = db.Column(db.Integer, db.ForeignKey("application.id", ondelete="CASCADE"), nullable=False, index=True)
+    reviewer_name = db.Column(db.String(160), nullable=False)
+    reviewer_email = db.Column(db.String(254), nullable=False, default="")
+    score = db.Column(db.Integer)
+    notes = db.Column(db.Text, nullable=False, default="")
+    created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+
+
+class ApplicationAssignment(db.Model):
+    application_id = db.Column(db.Integer, db.ForeignKey("application.id", ondelete="CASCADE"), primary_key=True)
+    reviewer_name = db.Column(db.String(160), nullable=False)
+    reviewer_email = db.Column(db.String(254), nullable=False)
+    assigned_by = db.Column(db.String(120), nullable=False, default="Admin")
+    updated_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+
+class ApplicationStatusChange(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    application_id = db.Column(db.Integer, db.ForeignKey("application.id", ondelete="CASCADE"), nullable=False, index=True)
+    previous_status = db.Column(db.String(30), nullable=False)
+    new_status = db.Column(db.String(30), nullable=False)
+    changed_by = db.Column(db.String(120), nullable=False, default="Admin")
+    created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+
+
 class EventRegistration(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     reference = db.Column(db.String(40), unique=True, nullable=False, index=True)
@@ -157,6 +222,14 @@ class EventRegistration(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     event = db.relationship("Event")
     user = db.relationship("User")
+
+
+class EventAttendance(db.Model):
+    registration_id = db.Column(db.Integer, db.ForeignKey("event_registration.id", ondelete="CASCADE"), primary_key=True)
+    attended = db.Column(db.Boolean, nullable=False, default=False)
+    checked_in_at = db.Column(db.DateTime)
+    checked_in_by = db.Column(db.String(120), nullable=False, default="")
+    registration = db.relationship("EventRegistration", backref=db.backref("attendance", uselist=False, cascade="all, delete-orphan"))
 
 
 class Payment(db.Model):
@@ -183,6 +256,28 @@ class Subscriber(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(254), unique=True, nullable=False, index=True)
     created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+
+
+class NotificationPreference(db.Model):
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), primary_key=True)
+    opportunity_updates = db.Column(db.Boolean, nullable=False, default=True)
+    event_updates = db.Column(db.Boolean, nullable=False, default=True)
+    application_updates = db.Column(db.Boolean, nullable=False, default=True)
+    payment_updates = db.Column(db.Boolean, nullable=False, default=True)
+    deadline_reminders = db.Column(db.Boolean, nullable=False, default=True)
+    updated_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+
+class UserNotification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True)
+    notification_type = db.Column(db.String(24), nullable=False, index=True)
+    title = db.Column(db.String(180), nullable=False)
+    body = db.Column(db.String(500), nullable=False, default="")
+    target_path = db.Column(db.String(500), nullable=False, default="/my-hub")
+    dedupe_key = db.Column(db.String(260), nullable=False, unique=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), index=True)
+    read_at = db.Column(db.DateTime)
 
 
 class ContactMessage(db.Model):
@@ -221,6 +316,28 @@ class ContentMedia(db.Model):
     media_id = db.Column(db.Integer, db.ForeignKey("media_item.id", ondelete="CASCADE"), nullable=False)
     media = db.relationship("MediaItem")
     __table_args__ = (db.UniqueConstraint("content_type", "content_key", "media_id"),)
+
+
+class LearningResource(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(180), nullable=False)
+    resource_type = db.Column(db.String(24), nullable=False, index=True)
+    category = db.Column(db.String(80), nullable=False, default="General")
+    summary = db.Column(db.String(400), nullable=False)
+    content = db.Column(db.Text, nullable=False, default="")
+    resource_url = db.Column(db.String(1000), nullable=False, default="")
+    audience = db.Column(db.String(16), nullable=False, default="public")
+    active = db.Column(db.Boolean, nullable=False, default=True, index=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+
+
+LEARNING_TYPES = {
+    "video": "Video lesson",
+    "audio": "Audio lesson",
+    "article": "Article",
+    "guide": "Practical guide",
+    "note": "Learning note / PDF",
+}
 
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
@@ -265,6 +382,27 @@ def slugify(text: str) -> str:
     return f"{base}-{secrets.token_hex(3)}"
 
 
+BLOCKED_REFERENCE_HOSTS = {"youthimpactcamp.org", "opportunitiescircle.com"}
+
+
+def valid_public_https_url(value: str, optional: bool = True) -> bool:
+    value = (value or "").strip()
+    if not value:
+        return optional
+    try:
+        parsed = urlparse(value)
+        hostname = (parsed.hostname or "").lower().rstrip(".").removeprefix("www.")
+    except ValueError:
+        return False
+    blocked = any(hostname == domain or hostname.endswith("." + domain) for domain in BLOCKED_REFERENCE_HOSTS)
+    return parsed.scheme.lower() == "https" and bool(hostname) and not parsed.username and not parsed.password and not blocked
+
+
+def public_opportunity_query():
+    return (Opportunity.query.filter_by(active=True).outerjoin(OpportunityExtra)
+            .filter(or_(OpportunityExtra.opportunity_id.is_(None), OpportunityExtra.archived.is_(False))))
+
+
 def seed_data():
     if PageSection.query.first():
         return
@@ -303,7 +441,8 @@ def seed_data():
 @app.context_processor
 def inject_site_context():
     user = db.session.get(User, session.get("user_id")) if session.get("user_id") else None
-    return {"categories": CATEGORIES, "regions": REGIONS, "site_user": user, "is_admin": bool(session.get("admin")), "page_names": PAGES, "payment_currency": PAYMENT_CURRENCY, "money": format_money, "countdown_datetime": countdown_datetime}
+    unread_notifications = UserNotification.query.filter_by(user_id=user.id, read_at=None).count() if user else 0
+    return {"categories": CATEGORIES, "regions": REGIONS, "site_user": user, "unread_notification_count": unread_notifications, "is_admin": bool(session.get("admin")), "page_names": PAGES, "payment_currency": PAYMENT_CURRENCY, "money": format_money, "countdown_datetime": countdown_datetime}
 
 
 def format_money(value: int, currency: str | None = None) -> str:
@@ -393,14 +532,112 @@ def send_member_alert(subject: str, body: str):
         app.logger.exception("Could not send opportunity email alerts")
 
 
+NOTIFICATION_PREFERENCE_FIELDS = {
+    "opportunity": "opportunity_updates",
+    "event": "event_updates",
+    "application": "application_updates",
+    "payment": "payment_updates",
+    "deadline": "deadline_reminders",
+}
+
+
+def user_allows_notification(user_id: int, notification_type: str) -> bool:
+    field = NOTIFICATION_PREFERENCE_FIELDS.get(notification_type)
+    if not field:
+        return False
+    preferences = db.session.get(NotificationPreference, user_id)
+    return True if preferences is None else bool(getattr(preferences, field))
+
+
+def add_user_notification(user_id: int, notification_type: str, title: str, body: str,
+                          target_path: str, dedupe_key: str) -> bool:
+    if not user_allows_notification(user_id, notification_type):
+        return False
+    if not target_path.startswith("/") or target_path.startswith("//"):
+        target_path = url_for("dashboard")
+    full_key = f"{user_id}:{dedupe_key}"[:260]
+    if UserNotification.query.filter_by(dedupe_key=full_key).first():
+        return False
+    db.session.add(UserNotification(user_id=user_id, notification_type=notification_type,
+                                    title=title[:180], body=body[:500], target_path=target_path[:500],
+                                    dedupe_key=full_key))
+    return True
+
+
+def notify_members(notification_type: str, title: str, body: str, target_path: str, dedupe_key: str):
+    preference_field = NOTIFICATION_PREFERENCE_FIELDS.get(notification_type)
+    if not preference_field:
+        return
+    preference_column = getattr(NotificationPreference, preference_field)
+    users = db.session.query(User.id, preference_column).outerjoin(
+        NotificationPreference, NotificationPreference.user_id == User.id
+    ).yield_per(400)
+    batch = []
+    for user_id, enabled in users:
+        if enabled is False:
+            continue
+        key = f"{user_id}:{dedupe_key}"[:260]
+        batch.append((user_id, key))
+        if len(batch) >= 400:
+            _insert_notification_batch(batch, notification_type, title, body, target_path)
+            batch.clear()
+    if batch:
+        _insert_notification_batch(batch, notification_type, title, body, target_path)
+    db.session.commit()
+
+
+def _insert_notification_batch(batch, notification_type, title, body, target_path):
+    existing = {key for (key,) in db.session.query(UserNotification.dedupe_key).filter(
+        UserNotification.dedupe_key.in_([key for _, key in batch])).all()}
+    if not target_path.startswith("/") or target_path.startswith("//"):
+        target_path = url_for("dashboard")
+    db.session.add_all(UserNotification(user_id=user_id, notification_type=notification_type,
+                                        title=title[:180], body=body[:500], target_path=target_path[:500],
+                                        dedupe_key=key)
+                       for user_id, key in batch if key not in existing)
+
+
+def sync_deadline_notifications(user_id: int):
+    if not user_allows_notification(user_id, "deadline"):
+        return
+    now = datetime.now(timezone.utc)
+    horizon = now + timedelta(days=7)
+    opportunity_ids = {entry.opportunity_id for entry in SavedOpportunity.query.filter_by(user_id=user_id).all()}
+    opportunity_ids.update(application.opportunity_id for application in Application.query.filter_by(user_id=user_id).all())
+    if opportunity_ids:
+        for item in public_opportunity_query().filter(Opportunity.id.in_(opportunity_ids)).all():
+            instant = countdown_datetime(item.deadline, True)
+            if not instant:
+                continue
+            deadline = datetime.fromisoformat(instant.replace("Z", "+00:00"))
+            if now < deadline <= horizon:
+                add_user_notification(user_id, "deadline", f"Closing soon: {item.title}",
+                                      f"This opportunity closes {item.deadline}. Review your next steps before the deadline.",
+                                      url_for("opportunity_detail", slug=item.slug),
+                                      f"deadline:opportunity:{item.id}:{instant}")
+    registrations = EventRegistration.query.filter_by(user_id=user_id).all()
+    for registration in registrations:
+        event = registration.event
+        instant = countdown_datetime(event.start_at) if event else ""
+        if not instant:
+            continue
+        start = datetime.fromisoformat(instant.replace("Z", "+00:00"))
+        if now < start <= horizon:
+            add_user_notification(user_id, "deadline", f"Coming up: {event.title}",
+                                  f"Your event starts {event.start_at}. Review the details and make a plan to attend.",
+                                  url_for("event_detail", slug=event.slug),
+                                  f"deadline:event:{event.id}:{instant}")
+    db.session.commit()
+
+
 @app.route("/")
 def home():
     category = request.args.get("category", "")
     region = request.args.get("region", "")
     q = request.args.get("q", "").strip()
-    query = Opportunity.query.filter_by(active=True)
+    query = public_opportunity_query()
     if category in CATEGORIES:
-        query = query.filter_by(category=category)
+        query = query.filter(Opportunity.category == category)
     if region in REGIONS:
         query = query.filter(or_(*[
             field.ilike(f"%{term}%")
@@ -412,7 +649,7 @@ def home():
         query = query.filter(or_(Opportunity.title.ilike(like), Opportunity.summary.ilike(like), Opportunity.location.ilike(like), Opportunity.description.ilike(like)))
     else:
         query = query.order_by(Opportunity.featured.desc(), Opportunity.created_at.desc())
-    return render_template("home.html", opportunities=query.limit(8).all(), events=Event.query.filter_by(active=True).order_by(Event.start_at).limit(3).all(), media_items=MediaItem.query.filter_by(show_on_home=True).order_by(MediaItem.created_at.desc()).limit(4).all(), page_media=content_media_for("page", "home"), copy=page_copy("home"), selected_category=category, selected_region=region, search=q, counts={"opportunities": Opportunity.query.filter_by(active=True).count(), "events": Event.query.filter_by(active=True).count()})
+    return render_template("home.html", opportunities=query.limit(8).all(), events=Event.query.filter_by(active=True).order_by(Event.start_at).limit(3).all(), media_items=MediaItem.query.filter_by(show_on_home=True).order_by(MediaItem.created_at.desc()).limit(4).all(), learning_resources=LearningResource.query.filter_by(active=True, audience="public").order_by(LearningResource.created_at.desc()).limit(3).all(), page_media=content_media_for("page", "home"), copy=page_copy("home"), selected_category=category, selected_region=region, search=q, counts={"opportunities": public_opportunity_query().count(), "events": Event.query.filter_by(active=True).count()})
 
 
 @app.get("/opportunities")
@@ -424,11 +661,18 @@ def opportunities():
     mode = request.args.get("mode", "")
     cost = request.args.get("cost", "")
     deadline_filter = request.args.get("deadline", "")
+    destination = request.args.get("destination", "").strip()[:120]
+    eligible_country = request.args.get("eligible_country", "").strip()[:120]
+    funding = request.args.get("funding", "")
+    field = request.args.get("field", "").strip()[:120]
+    age_value = request.args.get("age", "").strip()
+    paid = request.args.get("paid", "")
+    experience = request.args.get("experience", "")
     q = request.args.get("q", "").strip()
 
-    query = Opportunity.query.filter_by(active=True)
+    query = public_opportunity_query()
     if category in CATEGORIES:
-        query = query.filter_by(category=category)
+        query = query.filter(Opportunity.category == category)
     if region in REGIONS:
         query = query.filter(or_(*[
             field.ilike(f"%{term}%")
@@ -437,11 +681,46 @@ def opportunities():
         ]))
     if level:
         query = query.filter(Opportunity.level.ilike(f"%{level}%"))
+    if destination:
+        query = query.filter(OpportunityExtra.destination_country.ilike(f"%{destination}%"))
+    if eligible_country:
+        query = query.filter(or_(
+            OpportunityExtra.eligible_countries.ilike(f"%{eligible_country}%"),
+            OpportunityExtra.eligible_countries.ilike("%worldwide%"),
+            OpportunityExtra.eligible_countries.ilike("%all countries%"),
+            OpportunityExtra.eligible_countries.ilike("%all nationalities%"),
+        ))
+    if funding in FUNDING_TYPES:
+        if funding == "unspecified":
+            query = query.filter(or_(OpportunityExtra.funding_type == funding, OpportunityExtra.opportunity_id.is_(None)))
+        else:
+            query = query.filter(OpportunityExtra.funding_type == funding)
+    if field:
+        query = query.filter(OpportunityExtra.field_of_study.ilike(f"%{field}%"))
+    try:
+        age = int(age_value) if age_value else None
+        if age is not None and not 0 <= age <= 120:
+            age = None
+    except ValueError:
+        age = None
+    if age is not None:
+        query = query.filter(or_(OpportunityExtra.age_min.is_(None), OpportunityExtra.age_min <= age),
+                             or_(OpportunityExtra.age_max.is_(None), OpportunityExtra.age_max >= age))
+    if paid == "paid":
+        query = query.filter(OpportunityExtra.paid.is_(True))
+    elif paid == "unpaid":
+        query = query.filter(OpportunityExtra.paid.is_(False))
+    if experience == "required":
+        query = query.filter(OpportunityExtra.experience_required != "")
+    elif experience == "not_required":
+        query = query.filter(or_(OpportunityExtra.experience_required.is_(None), OpportunityExtra.experience_required == ""))
     if q:
         like = f"%{q}%"
-        query = query.filter(or_(Opportunity.title.ilike(like), Opportunity.summary.ilike(like), Opportunity.location.ilike(like), Opportunity.description.ilike(like), Opportunity.eligibility.ilike(like)))
+        query = query.filter(or_(Opportunity.title.ilike(like), Opportunity.summary.ilike(like), Opportunity.location.ilike(like), Opportunity.description.ilike(like), Opportunity.eligibility.ilike(like), OpportunityExtra.sponsor.ilike(like), OpportunityExtra.destination_country.ilike(like), OpportunityExtra.eligible_countries.ilike(like), OpportunityExtra.field_of_study.ilike(like)))
 
     items = query.order_by(Opportunity.featured.desc(), Opportunity.created_at.desc()).all()
+    items = [item for item in items if not countdown_expired(item.deadline, True)
+             and not (item.extra and item.extra.expiry_date and item.extra.expiry_date < date.today())]
     if mode in {"online", "in_person"}:
         online_terms = ("online", "remote", "virtual", "worldwide")
         items = [item for item in items if any(term in item.location.lower() for term in online_terms) == (mode == "online")]
@@ -454,13 +733,25 @@ def opportunities():
     elif deadline_filter == "closing_soon":
         now = datetime.now(timezone.utc)
         items = [item for item in items if (lambda instant: instant is not None and now < instant <= now + timedelta(days=30))(datetime.fromisoformat(countdown_datetime(item.deadline, True).replace("Z", "+00:00")) if countdown_datetime(item.deadline, True) else None)]
-    return render_template("opportunities.html", opportunities=items, selected_category=category, selected_region=region, selected_level=level, selected_mode=mode, selected_cost=cost, selected_deadline=deadline_filter, search=q)
+    return render_template("opportunities.html", opportunities=items, selected_category=category, selected_region=region, selected_level=level, selected_mode=mode, selected_cost=cost, selected_deadline=deadline_filter, selected_destination=destination, selected_eligible_country=eligible_country, selected_funding=funding, selected_field=field, selected_age=age_value, selected_paid=paid, selected_experience=experience, search=q, funding_types=FUNDING_TYPES)
 
 
 @app.get("/gallery")
 def gallery():
     items = MediaItem.query.filter_by(show_in_gallery=True).order_by(MediaItem.created_at.desc()).all()
     return render_template("gallery.html", media_items=items)
+
+
+@app.get("/learning-centre")
+def learning_centre():
+    resource_type = request.args.get("type", "").strip().lower()
+    query = LearningResource.query.filter_by(active=True)
+    if resource_type in LEARNING_TYPES:
+        query = query.filter_by(resource_type=resource_type)
+    resources = query.order_by(LearningResource.created_at.desc()).all()
+    is_member = bool(session.get("user_id") or session.get("admin"))
+    return render_template("learning.html", resources=resources, learning_types=LEARNING_TYPES,
+                           selected_type=resource_type, is_member=is_member)
 
 
 @app.get("/about")
@@ -504,9 +795,12 @@ def subscribe():
 
 @app.route("/opportunities/<slug>")
 def opportunity_detail(slug):
-    item = Opportunity.query.filter_by(slug=slug, active=True).first_or_404()
+    item = public_opportunity_query().filter(Opportunity.slug == slug).first_or_404()
     saved = bool(session.get("user_id") and SavedOpportunity.query.filter_by(user_id=session["user_id"], opportunity_id=item.id).first())
-    return render_template("opportunity.html", item=item, saved=saved, content_media=content_media_for("opportunity", item.id), deadline_closed=countdown_expired(item.deadline, True))
+    extra = item.extra
+    deadline_closed = countdown_expired(item.deadline, True) or bool(extra and extra.expiry_date and extra.expiry_date < date.today())
+    not_open_yet = bool(extra and extra.opening_date and extra.opening_date > date.today())
+    return render_template("opportunity.html", item=item, saved=saved, content_media=content_media_for("opportunity", item.id), deadline_closed=deadline_closed, not_open_yet=not_open_yet, funding_types=FUNDING_TYPES)
 
 
 @app.post("/opportunities/<slug>/save")
@@ -515,7 +809,7 @@ def save_opportunity(slug):
         flash("Sign in to keep opportunities on your personal board.", "info")
         return redirect(url_for("login", next=url_for("opportunity_detail", slug=slug)))
     user_id = session["user_id"]
-    item = Opportunity.query.filter_by(slug=slug, active=True).first_or_404()
+    item = public_opportunity_query().filter(Opportunity.slug == slug).first_or_404()
     saved = SavedOpportunity.query.filter_by(user_id=user_id, opportunity_id=item.id).first()
     if saved:
         db.session.delete(saved)
@@ -529,10 +823,16 @@ def save_opportunity(slug):
 
 @app.route("/opportunities/<slug>/apply", methods=["GET", "POST"])
 def apply(slug):
-    item = Opportunity.query.filter_by(slug=slug, active=True).first_or_404()
-    if countdown_expired(item.deadline, True):
+    item = public_opportunity_query().filter(Opportunity.slug == slug).first_or_404()
+    extra = item.extra
+    if countdown_expired(item.deadline, True) or (extra and extra.expiry_date and extra.expiry_date < date.today()):
         flash("The application window for this opportunity has closed.", "info")
         return redirect(url_for("opportunity_detail", slug=slug))
+    if extra and extra.opening_date and extra.opening_date > date.today():
+        flash("Applications for this opportunity have not opened yet.", "info")
+        return redirect(url_for("opportunity_detail", slug=slug))
+    if extra and extra.application_mode == "external" and extra.official_url:
+        return redirect(extra.official_url)
     if not session.get("user_id"):
         flash("Create an account or sign in to start your application.", "info")
         return redirect(url_for("login", next=url_for("apply", slug=slug)))
@@ -549,6 +849,10 @@ def apply(slug):
         application_profile = profile.snapshot() if profile else {}
         application_profile.update({"full_name": user.full_name, "email": user.email, "phone": user.phone})
         db.session.add(ApplicationProfileSnapshot(application_id=record.id, profile_json=json.dumps(application_profile, ensure_ascii=False)))
+        add_user_notification(user.id, "application", "Application started",
+                              f"Your application for {item.title} is recorded."
+                              + (" Complete the fee payment to finish submission." if item.application_fee_tzs else " Track its progress in your Hub."),
+                              url_for("dashboard"), f"application:{record.id}:created")
         if item.application_fee_tzs:
             payment = make_payment("application", record.id, item.application_fee_tzs)
             db.session.commit()
@@ -589,6 +893,10 @@ def event_register(slug):
     record = EventRegistration(reference=f"OH-EVT-{secrets.token_hex(5).upper()}", event=event, user_id=session["user_id"], payment_status="not_required" if not event.ticket_price_tzs else "pending")
     db.session.add(record)
     db.session.flush()
+    add_user_notification(record.user_id, "event", "Event registration received",
+                          f"Your place request for {event.title} is recorded."
+                          + (" Complete payment to confirm your place." if event.ticket_price_tzs else " Event details are available in your Hub."),
+                          url_for("event_detail", slug=event.slug), f"event-registration:{record.id}:created")
     if event.ticket_price_tzs:
         payment = make_payment("event", record.id, event.ticket_price_tzs)
         db.session.commit()
@@ -638,12 +946,72 @@ def logout():
     return redirect(url_for("home"))
 
 
+@app.get("/my-notifications")
+def notifications_center():
+    user_id = session.get("user_id")
+    if not user_id:
+        return redirect(url_for("login", next=url_for("notifications_center")))
+    preferences = db.session.get(NotificationPreference, user_id)
+    if preferences is None:
+        preferences = NotificationPreference(user_id=user_id)
+        db.session.add(preferences)
+        db.session.commit()
+    notifications = UserNotification.query.filter_by(user_id=user_id).order_by(UserNotification.created_at.desc()).limit(100).all()
+    return render_template("notifications.html", notifications=notifications, preferences=preferences,
+                           unread_count=sum(item.read_at is None for item in notifications))
+
+
+@app.post("/my-notifications/preferences")
+def update_notification_preferences():
+    user_id = session.get("user_id")
+    if not user_id:
+        return redirect(url_for("login", next=url_for("notifications_center")))
+    preferences = db.session.get(NotificationPreference, user_id)
+    if preferences is None:
+        preferences = NotificationPreference(user_id=user_id)
+        db.session.add(preferences)
+    for field in NOTIFICATION_PREFERENCE_FIELDS.values():
+        setattr(preferences, field, request.form.get(field) == "on")
+    db.session.commit()
+    flash("Your in-app notification preferences were saved.", "success")
+    return redirect(url_for("notifications_center"))
+
+
+@app.post("/my-notifications/<int:notification_id>/read")
+def mark_notification_read(notification_id):
+    user_id = session.get("user_id")
+    if not user_id:
+        return redirect(url_for("login", next=url_for("notifications_center")))
+    item = UserNotification.query.filter_by(id=notification_id, user_id=user_id).first_or_404()
+    if item.read_at is None:
+        item.read_at = datetime.now(timezone.utc)
+        db.session.commit()
+    return redirect(item.target_path if item.target_path.startswith("/") and not item.target_path.startswith("//") else url_for("notifications_center"))
+
+
+@app.post("/my-notifications/read-all")
+def mark_all_notifications_read():
+    user_id = session.get("user_id")
+    if not user_id:
+        return redirect(url_for("login", next=url_for("notifications_center")))
+    UserNotification.query.filter_by(user_id=user_id, read_at=None).update({"read_at": datetime.now(timezone.utc)}, synchronize_session=False)
+    db.session.commit()
+    flash("All notifications were marked as read.", "success")
+    return redirect(url_for("notifications_center"))
+
+
 @app.get("/my-hub")
 def dashboard():
     if not session.get("user_id"):
         return redirect(url_for("login", next=url_for("dashboard")))
     user = db.session.get(User, session["user_id"]) or abort(404)
+    sync_deadline_notifications(user.id)
     applications = Application.query.filter_by(user_id=user.id).order_by(Application.created_at.desc()).all()
+    application_ids = [application.id for application in applications]
+    changes = ApplicationStatusChange.query.filter(ApplicationStatusChange.application_id.in_(application_ids)).order_by(ApplicationStatusChange.created_at.desc()).all() if application_ids else []
+    application_history = {}
+    for change in changes:
+        application_history.setdefault(change.application_id, []).append(change)
     registrations = EventRegistration.query.filter_by(user_id=user.id).order_by(EventRegistration.created_at.desc()).all()
     saved = SavedOpportunity.query.filter_by(user_id=user.id).all()
     profile = UserProfile.query.filter_by(user_id=user.id).first()
@@ -651,8 +1019,8 @@ def dashboard():
     profile_terms = {word.lower() for value in profile_values.values() for word in value.replace(",", " ").split() if len(word) > 2}
     recommendations = []
     if profile_terms:
-        for opportunity in Opportunity.query.filter_by(active=True).all():
-            if countdown_expired(opportunity.deadline, True):
+        for opportunity in public_opportunity_query().all():
+            if countdown_expired(opportunity.deadline, True) or (opportunity.extra and opportunity.extra.expiry_date and opportunity.extra.expiry_date < date.today()):
                 continue
             searchable = f"{opportunity.title} {opportunity.category} {opportunity.location} {opportunity.level} {opportunity.summary} {opportunity.eligibility}".lower()
             score = sum(1 for term in profile_terms if term in searchable)
@@ -660,10 +1028,10 @@ def dashboard():
                 recommendations.append((score, opportunity))
         recommendations = [item for _, item in sorted(recommendations, key=lambda pair: (pair[0], pair[1].featured, pair[1].created_at), reverse=True)[:4]]
     if not recommendations:
-        recommendations = Opportunity.query.filter_by(active=True, featured=True).order_by(Opportunity.created_at.desc()).limit(4).all()
+        recommendations = public_opportunity_query().filter(Opportunity.featured.is_(True)).order_by(Opportunity.created_at.desc()).limit(4).all()
     profile_fields = ("nationality", "country_of_residence", "education_level", "institution", "field_of_study", "employment_background", "skills", "languages", "interests", "career_goals")
     profile_completion = round(sum(bool(profile_values.get(field)) for field in profile_fields) * 100 / len(profile_fields))
-    return render_template("dashboard.html", user=user, applications=applications, registrations=registrations, saved=saved, profile=profile, profile_completion=profile_completion, recommendations=recommendations)
+    return render_template("dashboard.html", user=user, applications=applications, application_history=application_history, registrations=registrations, saved=saved, profile=profile, profile_completion=profile_completion, recommendations=recommendations)
 
 
 @app.route("/my-profile", methods=["GET", "POST"])
@@ -765,12 +1133,25 @@ def verify_gateway_payment(transaction_id: str, record: Payment) -> bool:
 
 
 def mark_payment_paid(record: Payment, transaction_id: str):
+    was_paid = record.status == "paid"
     record.status = "paid"
     record.gateway_transaction_id = transaction_id
     if record.owner_type == "application":
-        db.session.get(Application, record.owner_id).payment_status = "paid"
+        owner = db.session.get(Application, record.owner_id)
+        if owner:
+            owner.payment_status = "paid"
+            if not was_paid:
+                add_user_notification(owner.user_id, "payment", "Application payment confirmed",
+                                      f"Your payment for {owner.opportunity.title} was confirmed.",
+                                      url_for("dashboard"), f"payment:{record.id}:paid")
     else:
-        db.session.get(EventRegistration, record.owner_id).payment_status = "paid"
+        owner = db.session.get(EventRegistration, record.owner_id)
+        if owner:
+            owner.payment_status = "paid"
+            if not was_paid:
+                add_user_notification(owner.user_id, "payment", "Event payment confirmed",
+                                      f"Your payment for {owner.event.title} was confirmed.",
+                                      url_for("dashboard"), f"payment:{record.id}:paid")
     db.session.commit()
 
 
@@ -829,6 +1210,27 @@ def require_admin():
         abort(403)
 
 
+def filtered_admin_applications(limit=100):
+    search = request.args.get("application_q", "").strip()[:180]
+    status = request.args.get("application_status", "")
+    opportunity_value = request.args.get("application_opportunity", "")
+    query = Application.query.join(User, Application.user_id == User.id).join(Opportunity, Application.opportunity_id == Opportunity.id)
+    if search:
+        like = f"%{search}%"
+        query = query.filter(or_(Application.reference.ilike(like), User.full_name.ilike(like), User.email.ilike(like), Opportunity.title.ilike(like)))
+    if status in APPLICATION_STATUSES:
+        query = query.filter(Application.status == status)
+    try:
+        opportunity_id = int(opportunity_value) if opportunity_value else None
+    except ValueError:
+        opportunity_id = None
+    if opportunity_id:
+        query = query.filter(Application.opportunity_id == opportunity_id)
+    count = query.order_by(None).count()
+    return (query.order_by(Application.created_at.desc()).limit(limit).all(), search,
+            status if status in APPLICATION_STATUSES else "", str(opportunity_id or ""), count)
+
+
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
     if not session.get("admin"):
@@ -840,7 +1242,27 @@ def admin():
         return render_template("admin_login.html")
     opportunities = Opportunity.query.order_by(Opportunity.created_at.desc()).all()
     events = Event.query.order_by(Event.created_at.desc()).all()
-    return render_template("admin.html", opportunities=opportunities, events=events, media_items=MediaItem.query.order_by(MediaItem.created_at.desc()).all(), pages={page: PageSection.query.filter_by(page=page).all() for page in PAGES}, page_media={page: ContentMedia.query.filter_by(content_type="page", content_key=page).order_by(ContentMedia.id).all() for page in PAGES}, opportunity_media={item.id: content_media_for("opportunity", item.id) for item in opportunities}, event_media={item.id: content_media_for("event", item.id) for item in events}, applications=Application.query.order_by(Application.created_at.desc()).limit(30).all(), registrations=EventRegistration.query.order_by(EventRegistration.created_at.desc()).limit(30).all(), subscribers=Subscriber.query.order_by(Subscriber.created_at.desc()).all(), messages=ContactMessage.query.order_by(ContactMessage.created_at.desc()).limit(30).all(), payments=Payment.query.order_by(Payment.created_at.desc()).limit(30).all())
+    applications, application_search, application_status_filter, application_opportunity_filter, application_match_count = filtered_admin_applications()
+    application_ids = [record.id for record in applications]
+    reviews = ApplicationReview.query.filter(ApplicationReview.application_id.in_(application_ids)).order_by(ApplicationReview.created_at.desc()).all() if application_ids else []
+    reviews_by_application = {}
+    for review in reviews:
+        reviews_by_application.setdefault(review.application_id, []).append(review)
+    assignments = ApplicationAssignment.query.filter(ApplicationAssignment.application_id.in_(application_ids)).all() if application_ids else []
+    assignments_by_application = {assignment.application_id: assignment for assignment in assignments}
+    status_history = ApplicationStatusChange.query.filter(ApplicationStatusChange.application_id.in_(application_ids)).order_by(ApplicationStatusChange.created_at.desc()).all() if application_ids else []
+    history_by_application = {}
+    for change in status_history:
+        history_by_application.setdefault(change.application_id, []).append(change)
+    snapshots = ApplicationProfileSnapshot.query.filter(ApplicationProfileSnapshot.application_id.in_(application_ids)).all() if application_ids else []
+    profile_by_application = {}
+    for snapshot in snapshots:
+        try:
+            profile_by_application[snapshot.application_id] = json.loads(snapshot.profile_json)
+        except (TypeError, json.JSONDecodeError):
+            profile_by_application[snapshot.application_id] = {}
+    event_registration_counts = dict(db.session.query(EventRegistration.event_id, db.func.count(EventRegistration.id)).group_by(EventRegistration.event_id).all())
+    return render_template("admin.html", opportunities=opportunities, public_opportunity_count=public_opportunity_query().count(), total_application_count=Application.query.count(), events=events, event_registration_counts=event_registration_counts, media_items=MediaItem.query.order_by(MediaItem.created_at.desc()).all(), learning_resources=LearningResource.query.order_by(LearningResource.created_at.desc()).all(), learning_types=LEARNING_TYPES, funding_types=FUNDING_TYPES, pages={page: PageSection.query.filter_by(page=page).all() for page in PAGES}, page_media={page: ContentMedia.query.filter_by(content_type="page", content_key=page).order_by(ContentMedia.id).all() for page in PAGES}, opportunity_media={item.id: content_media_for("opportunity", item.id) for item in opportunities}, event_media={item.id: content_media_for("event", item.id) for item in events}, applications=applications, application_search=application_search, application_status_filter=application_status_filter, application_opportunity_filter=application_opportunity_filter, application_match_count=application_match_count, application_statuses=APPLICATION_STATUSES, application_reviews=reviews_by_application, application_assignments=assignments_by_application, application_history=history_by_application, application_profiles=profile_by_application, registrations=EventRegistration.query.order_by(EventRegistration.created_at.desc()).limit(30).all(), subscribers=Subscriber.query.order_by(Subscriber.created_at.desc()).all(), messages=ContactMessage.query.order_by(ContactMessage.created_at.desc()).limit(30).all(), payments=Payment.query.order_by(Payment.created_at.desc()).limit(30).all())
 
 
 @app.post("/admin/logout")
@@ -915,20 +1337,155 @@ def admin_add_opportunity():
         return redirect(url_for("admin") + "#manage-opportunities")
     title, summary, description = (form.get(key, "").strip() for key in ("title", "summary", "description"))
     category = form.get("category", "")
+    funding_type = form.get("funding_type", "unspecified")
+    application_mode = form.get("application_mode", "internal")
+    paid_choice = form.get("paid", "")
+    official_url = form.get("official_url", "").strip()
+    source_url = form.get("source_url", "").strip()
+    def optional_date(field_name):
+        raw = form.get(field_name, "").strip()
+        return (date.fromisoformat(raw) if raw else None)
     try:
         fee = max(0, int(form.get("fee_amount", "0") or 0))
+        age_min = int(form["age_min"]) if form.get("age_min", "").strip() else None
+        age_max = int(form["age_max"]) if form.get("age_max", "").strip() else None
+        opening_date = optional_date("opening_date")
+        expiry_date = optional_date("expiry_date")
     except ValueError:
-        fee = -1
-    if not title or not summary or not description or category not in CATEGORIES or fee < 0:
-        flash("Complete the listing fields and enter a valid fee amount.", "error")
+        fee, age_min, age_max, opening_date, expiry_date = -1, None, None, None, None
+    ages_valid = all(value is None or 0 <= value <= 120 for value in (age_min, age_max)) and (age_min is None or age_max is None or age_min <= age_max)
+    dates_valid = not (opening_date and expiry_date and expiry_date < opening_date)
+    details_valid = (funding_type in FUNDING_TYPES and application_mode in {"internal", "external"}
+                     and paid_choice in {"", "paid", "unpaid"} and ages_valid and dates_valid
+                     and valid_public_https_url(official_url) and valid_public_https_url(source_url)
+                     and (application_mode != "external" or bool(official_url))
+                     and (not (form.get("verified") == "on") or bool(source_url)))
+    if not title or not summary or not description or category not in CATEGORIES or fee < 0 or not details_valid:
+        flash("Complete required listing fields and check the date, age, funding, application and HTTPS source details.", "error")
     else:
         item = Opportunity(slug=slugify(title), title=title, category=category, location=form.get("location", "Worldwide · Online").strip() or "Worldwide · Online", level=form.get("level", "All levels").strip() or "All levels", deadline=form.get("deadline", "Open until filled").strip() or "Open until filled", summary=summary, description=description, eligibility=form.get("eligibility", "Details shared below.").strip(), benefits=form.get("benefits", "").strip(), application_fee_tzs=fee, featured=form.get("featured") == "on")
         db.session.add(item)
         db.session.flush()
+        db.session.add(OpportunityExtra(
+            opportunity_id=item.id,
+            sponsor=form.get("sponsor", "").strip()[:180],
+            destination_country=form.get("destination_country", "").strip()[:120],
+            eligible_countries=form.get("eligible_countries", "").strip()[:3000],
+            funding_type=funding_type,
+            funding_coverage=form.get("funding_coverage", "").strip()[:5000],
+            field_of_study=form.get("field_of_study", "").strip()[:240],
+            age_min=age_min, age_max=age_max,
+            paid=True if paid_choice == "paid" else False if paid_choice == "unpaid" else None,
+            experience_required=form.get("experience_required", "").strip()[:3000],
+            opening_date=opening_date, expiry_date=expiry_date,
+            required_documents=form.get("required_documents", "").strip()[:5000],
+            application_procedure=form.get("application_procedure", "").strip()[:5000],
+            application_mode=application_mode, official_url=official_url[:1000],
+            source_url=source_url[:1000], verified=form.get("verified") == "on",
+            verified_at=datetime.now(timezone.utc) if form.get("verified") == "on" else None,
+        ))
         attach_content_uploads(uploads, "opportunity", item.id, form.get("media_caption", ""))
         db.session.commit()
+        notify_members("opportunity", f"New opportunity: {item.title}", item.summary,
+                       url_for("opportunity_detail", slug=item.slug), f"opportunity:{item.id}:published")
         send_member_alert(f"New opportunity: {item.title}", f"{item.summary}\n\nFind this opportunity in your personal Opportunity Hub.")
         flash("Opportunity published on Opportunity Hub.", "success")
+    return redirect(url_for("admin") + "#manage-opportunities")
+
+
+@app.route("/admin/opportunities/<int:opportunity_id>/edit", methods=["GET", "POST"])
+def admin_edit_opportunity(opportunity_id):
+    require_admin()
+    item = db.session.get(Opportunity, opportunity_id) or abort(404)
+    extra = item.extra
+    if request.method == "POST":
+        form = request.form
+        uploads = request.files.getlist("content_media")
+        if not content_uploads_are_valid(uploads):
+            return redirect(url_for("admin_edit_opportunity", opportunity_id=item.id))
+        title, summary, description = (form.get(key, "").strip() for key in ("title", "summary", "description"))
+        category = form.get("category", "")
+        funding_type = form.get("funding_type", "unspecified")
+        application_mode = form.get("application_mode", "internal")
+        paid_choice = form.get("paid", "")
+        official_url = form.get("official_url", "").strip()
+        source_url = form.get("source_url", "").strip()
+        try:
+            fee = int(form.get("fee_amount", "0") or 0)
+            age_min = int(form["age_min"]) if form.get("age_min", "").strip() else None
+            age_max = int(form["age_max"]) if form.get("age_max", "").strip() else None
+            opening_date = date.fromisoformat(form["opening_date"]) if form.get("opening_date", "").strip() else None
+            expiry_date = date.fromisoformat(form["expiry_date"]) if form.get("expiry_date", "").strip() else None
+        except ValueError:
+            fee, age_min, age_max, opening_date, expiry_date = -1, None, None, None, None
+        ages_valid = all(value is None or 0 <= value <= 120 for value in (age_min, age_max)) and (age_min is None or age_max is None or age_min <= age_max)
+        dates_valid = not (opening_date and expiry_date and expiry_date < opening_date)
+        details_valid = (funding_type in FUNDING_TYPES and application_mode in {"internal", "external"}
+                         and paid_choice in {"", "paid", "unpaid"} and ages_valid and dates_valid
+                         and valid_public_https_url(official_url) and valid_public_https_url(source_url)
+                         and (application_mode != "external" or bool(official_url))
+                         and (form.get("verified") != "on" or bool(source_url)))
+        if (not title or not summary or not description or category not in CATEGORIES
+                or fee < 0 or not details_valid):
+            flash("Check the required fields, dates, ages, funding and HTTPS source details.", "error")
+        else:
+            item.title = title[:180]
+            item.category = category
+            item.location = form.get("location", "Worldwide · Online").strip()[:120] or "Worldwide · Online"
+            item.level = form.get("level", "All levels").strip()[:80] or "All levels"
+            item.deadline = form.get("deadline", "Open until filled").strip()[:100] or "Open until filled"
+            item.summary = summary[:300]
+            item.description = description
+            item.eligibility = form.get("eligibility", "").strip()
+            item.benefits = form.get("benefits", "").strip()
+            item.application_fee_tzs = fee
+            item.featured = form.get("featured") == "on"
+            if extra is None:
+                extra = OpportunityExtra(opportunity=item)
+                db.session.add(extra)
+            was_verified, previous_source_url = extra.verified, extra.source_url
+            extra.sponsor = form.get("sponsor", "").strip()[:180]
+            extra.destination_country = form.get("destination_country", "").strip()[:120]
+            extra.eligible_countries = form.get("eligible_countries", "").strip()[:3000]
+            extra.funding_type = funding_type
+            extra.funding_coverage = form.get("funding_coverage", "").strip()[:5000]
+            extra.field_of_study = form.get("field_of_study", "").strip()[:240]
+            extra.age_min, extra.age_max = age_min, age_max
+            extra.paid = True if paid_choice == "paid" else False if paid_choice == "unpaid" else None
+            extra.experience_required = form.get("experience_required", "").strip()[:3000]
+            extra.opening_date, extra.expiry_date = opening_date, expiry_date
+            extra.required_documents = form.get("required_documents", "").strip()[:5000]
+            extra.application_procedure = form.get("application_procedure", "").strip()[:5000]
+            extra.application_mode = application_mode
+            extra.official_url, extra.source_url = official_url[:1000], source_url[:1000]
+            extra.verified = form.get("verified") == "on"
+            if not extra.verified:
+                extra.verified_at = None
+            elif not was_verified or previous_source_url != extra.source_url:
+                extra.verified_at = datetime.now(timezone.utc)
+            attach_content_uploads(uploads, "opportunity", item.id, form.get("media_caption", ""))
+            db.session.commit()
+            flash("Opportunity details updated.", "success")
+            return redirect(url_for("admin") + "#manage-opportunities")
+    return render_template("admin_opportunity_edit.html", item=item, extra=extra,
+                           categories=CATEGORIES, funding_types=FUNDING_TYPES,
+                           content_media=content_media_for("opportunity", item.id))
+
+
+@app.post("/admin/opportunities/<int:opportunity_id>/archive")
+def admin_archive_opportunity(opportunity_id):
+    require_admin()
+    item = db.session.get(Opportunity, opportunity_id) or abort(404)
+    extra = item.extra
+    if extra is None:
+        extra = OpportunityExtra(opportunity=item)
+        db.session.add(extra)
+    action = request.form.get("action")
+    if action not in {"archive", "restore"}:
+        abort(400)
+    extra.archived = action == "archive"
+    db.session.commit()
+    flash("Opportunity archived. Past applications remain in the system." if extra.archived else "Opportunity restored to public listings.", "success")
     return redirect(url_for("admin") + "#manage-opportunities")
 
 
@@ -944,8 +1501,11 @@ def admin_add_event():
         capacity, fee = int(form.get("capacity", "100")), int(form.get("fee_amount", "0"))
     except ValueError:
         capacity, fee = 0, -1
-    if not title or not summary or not start_at or capacity < 1 or fee < 0:
-        flash("Enter an event title, summary, date, valid capacity and fee.", "error")
+    start_instant = countdown_datetime(start_at)
+    end_instant = countdown_datetime(end_at) if end_at else ""
+    if (not title or not summary or not start_instant or (end_at and not end_instant)
+            or end_instant and end_instant < start_instant or capacity < 1 or fee < 0):
+        flash("Enter an event title, summary, valid UTC start and optional end time, capacity and fee.", "error")
     else:
         location = form.get("location", "Worldwide · Online").strip() or "Worldwide · Online"
         event = Event(slug=slugify(title), title=title, event_type=form.get("event_type", "Community event").strip() or "Community event", start_at=start_at, end_at=form.get("end_at", "").strip(), location=location, summary=summary, description=form.get("description", "").strip(), capacity=capacity, ticket_price_tzs=fee)
@@ -953,9 +1513,127 @@ def admin_add_event():
         db.session.flush()
         attach_content_uploads(uploads, "event", event.id, form.get("media_caption", ""))
         db.session.commit()
+        notify_members("event", f"New event: {event.title}", event.summary,
+                       url_for("event_detail", slug=event.slug), f"event:{event.id}:published")
         send_member_alert(f"New Opportunity Hub event: {title}", f"{summary}\n\nDate: {start_at}\nLocation: {location}\n\nFind and register for this event in your personal Opportunity Hub.")
         flash("Event published on the Opportunity Hub calendar.", "success")
     return redirect(url_for("admin") + "#manage-events")
+
+
+@app.route("/admin/events/<int:event_id>/edit", methods=["GET", "POST"])
+def admin_edit_event(event_id):
+    require_admin()
+    event = db.session.get(Event, event_id) or abort(404)
+    registration_count = EventRegistration.query.filter_by(event_id=event.id).count()
+    if request.method == "POST":
+        form = request.form
+        uploads = request.files.getlist("content_media")
+        if not content_uploads_are_valid(uploads):
+            return redirect(url_for("admin_edit_event", event_id=event.id))
+        title = form.get("title", "").strip()
+        event_type = form.get("event_type", "Community event").strip() or "Community event"
+        start_at = form.get("start_at", "").strip()
+        end_at = form.get("end_at", "").strip()
+        location = form.get("location", "Worldwide · Online").strip() or "Worldwide · Online"
+        summary = form.get("summary", "").strip()
+        description = form.get("description", "").strip()
+        start_instant = countdown_datetime(start_at)
+        end_instant = countdown_datetime(end_at) if end_at else ""
+        try:
+            capacity = int(form.get("capacity", "0"))
+            fee = int(form.get("fee_amount", "-1"))
+        except ValueError:
+            capacity, fee = 0, -1
+        if (not title or len(title) > 180 or len(event_type) > 60 or not summary or len(summary) > 300
+                or len(location) > 180 or not start_instant or (end_at and not end_instant)
+                or end_instant and end_instant < start_instant or capacity < max(1, registration_count) or fee < 0):
+            flash("Check the event title, summary, UTC dates, capacity and ticket price. Capacity cannot be below existing registrations.", "error")
+            return render_template("admin_event_edit.html", event=event, registration_count=registration_count,
+                                   content_media=content_media_for("event", event.id))
+        previous_values = (event.title, event.event_type, event.start_at, event.end_at, event.location,
+                           event.summary, event.description, event.capacity, event.ticket_price_tzs)
+        event.title, event.event_type, event.start_at, event.end_at = title, event_type, start_at, end_at
+        event.location, event.summary, event.description = location, summary, description
+        event.capacity, event.ticket_price_tzs = capacity, fee
+        attach_content_uploads(uploads, "event", event.id, form.get("media_caption", ""))
+        changed = previous_values != (event.title, event.event_type, event.start_at, event.end_at, event.location,
+                                      event.summary, event.description, event.capacity, event.ticket_price_tzs)
+        if changed:
+            updated_key = datetime.now(timezone.utc).isoformat()
+            for registration in EventRegistration.query.filter_by(event_id=event.id).all():
+                add_user_notification(registration.user_id, "event", f"Event details updated: {event.title}",
+                                      "An event you registered for has new details. Review the date, location, capacity and ticket information before attending.",
+                                      url_for("event_detail", slug=event.slug), f"event:{event.id}:updated:{updated_key}")
+        db.session.commit()
+        flash("Event details saved. Registered participants were notified of the update." if changed and registration_count else "Event details saved.", "success")
+        return redirect(url_for("admin") + "#manage-events")
+    return render_template("admin_event_edit.html", event=event, registration_count=registration_count,
+                           content_media=content_media_for("event", event.id))
+
+
+@app.get("/admin/events/<int:event_id>/participants")
+def admin_event_participants(event_id):
+    require_admin()
+    event = db.session.get(Event, event_id) or abort(404)
+    search = request.args.get("q", "").strip()[:180]
+    query = EventRegistration.query.join(User, EventRegistration.user_id == User.id).filter(EventRegistration.event_id == event.id)
+    if search:
+        like = f"%{search}%"
+        query = query.filter(or_(User.full_name.ilike(like), User.email.ilike(like), EventRegistration.reference.ilike(like)))
+    try:
+        page_number = max(1, int(request.args.get("page", "1")))
+    except ValueError:
+        page_number = 1
+    pager = query.order_by(EventRegistration.created_at.desc()).paginate(page=page_number, per_page=100, error_out=False)
+    participants = pager.items
+    attendance = {row.registration_id: row for row in EventAttendance.query.filter(
+        EventAttendance.registration_id.in_([item.id for item in participants])).all()} if participants else {}
+    return render_template("admin_event_participants.html", event=event, participants=participants, attendance=attendance,
+                           pager=pager, search=search)
+
+
+@app.post("/admin/events/<int:event_id>/participants/<int:registration_id>/attendance")
+def admin_update_event_attendance(event_id, registration_id):
+    require_admin()
+    registration = EventRegistration.query.filter_by(id=registration_id, event_id=event_id).first_or_404()
+    action = request.form.get("action", "")
+    if action not in {"check_in", "undo"}:
+        abort(400)
+    if action == "check_in" and registration.payment_status not in {"paid", "not_required"}:
+        flash("Check-in is available after the registration payment is confirmed.", "error")
+        return redirect(url_for("admin_event_participants", event_id=event_id))
+    record = db.session.get(EventAttendance, registration.id)
+    if record is None:
+        record = EventAttendance(registration_id=registration.id)
+        db.session.add(record)
+    record.attended = action == "check_in"
+    record.checked_in_at = datetime.now(timezone.utc) if record.attended else None
+    record.checked_in_by = session.get("admin_name", "Admin") if record.attended else ""
+    db.session.commit()
+    flash("Participant checked in." if record.attended else "Check-in reversed.", "success")
+    return redirect(url_for("admin_event_participants", event_id=event_id))
+
+
+@app.get("/admin/events/<int:event_id>/participants.csv")
+def admin_export_event_participants(event_id):
+    require_admin()
+    event = db.session.get(Event, event_id) or abort(404)
+    participants = EventRegistration.query.filter_by(event_id=event.id).order_by(EventRegistration.created_at.asc()).all()
+    attendance = {row.registration_id: row for row in EventAttendance.query.filter(
+        EventAttendance.registration_id.in_([item.id for item in participants])).all()} if participants else {}
+    output = io.StringIO(newline="")
+    writer = csv.writer(output)
+    writer.writerow(["Registration reference", "Name", "Email", "Phone", "Quantity", "Payment status", "Registered at", "Attendance", "Checked in at", "Checked in by"])
+    for item in participants:
+        checkin = attendance.get(item.id)
+        writer.writerow([csv_cell(item.reference), csv_cell(item.user.full_name), csv_cell(item.user.email),
+                         csv_cell(item.user.phone), item.quantity, csv_cell(item.payment_status),
+                         csv_cell(item.created_at.isoformat()), "Attended" if checkin and checkin.attended else "Not checked in",
+                         csv_cell(checkin.checked_in_at.isoformat() if checkin and checkin.checked_in_at else ""),
+                         csv_cell(checkin.checked_in_by if checkin else "")])
+    filename = f"nextgen-event-{event.id}-participants-{datetime.now(timezone.utc):%Y%m%d}.csv"
+    return Response("\ufeff" + output.getvalue(), content_type="text/csv; charset=utf-8",
+                    headers={"Content-Disposition": f"attachment; filename={filename}"})
 
 
 @app.post("/admin/pages/<page>")
@@ -972,6 +1650,52 @@ def admin_update_page(page):
     db.session.commit()
     flash(f"{PAGES[page]} content saved. Any attached media will appear on that page.", "success")
     return redirect(url_for("admin") + f"#page-{page}")
+
+
+@app.post("/admin/learning")
+def admin_add_learning_resource():
+    require_admin()
+    form = request.form
+    title = form.get("title", "").strip()
+    resource_type = form.get("resource_type", "").strip()
+    summary = form.get("summary", "").strip()
+    content = form.get("content", "").strip()
+    resource_url = form.get("resource_url", "").strip()
+    audience = form.get("audience", "public").strip()
+    valid_url = valid_public_https_url(resource_url)
+    if (not title or resource_type not in LEARNING_TYPES or not summary
+            or audience not in {"public", "members"} or not valid_url
+            or (resource_type in {"video", "audio", "note"} and not resource_url and not content)):
+        flash("Add a title, type, summary, valid HTTPS resource link where needed, and choose its audience.", "error")
+        return redirect(url_for("admin") + "#learning-content")
+    resource = LearningResource(
+        title=title[:180], resource_type=resource_type,
+        category=form.get("category", "General").strip()[:80] or "General",
+        summary=summary[:400], content=content, resource_url=resource_url[:1000],
+        audience=audience, active=True,
+    )
+    db.session.add(resource)
+    db.session.commit()
+    flash("Learning resource published in the Learning Centre.", "success")
+    return redirect(url_for("admin") + "#learning-content")
+
+
+@app.post("/admin/learning/<int:resource_id>")
+def admin_update_learning_resource(resource_id):
+    require_admin()
+    resource = db.session.get(LearningResource, resource_id) or abort(404)
+    action = request.form.get("action")
+    if action == "toggle":
+        resource.active = not resource.active
+        db.session.commit()
+        flash("Learning resource visibility updated.", "success")
+    elif action == "delete":
+        db.session.delete(resource)
+        db.session.commit()
+        flash("Learning resource deleted.", "success")
+    else:
+        abort(400)
+    return redirect(url_for("admin") + "#learning-content")
 
 
 @app.post("/admin/content-media/<int:link_id>/delete")
@@ -1013,12 +1737,101 @@ def admin_update_application_status(application_id):
     require_admin()
     record = db.session.get(Application, application_id) or abort(404)
     status = request.form.get("status", "")
-    if status not in {"Submitted", "Under review", "Shortlisted", "Interview", "Accepted", "Rejected", "Waitlisted", "Withdrawn"}:
+    if status not in APPLICATION_STATUSES:
         abort(400)
-    record.status = status
+    if status != record.status:
+        change = ApplicationStatusChange(application_id=record.id, previous_status=record.status,
+                                         new_status=status, changed_by=session.get("admin_name", "Admin"))
+        db.session.add(change)
+        record.status = status
+        add_user_notification(record.user_id, "application", f"Application update: {status}",
+                              f"Your application for {record.opportunity.title} is now marked {status.lower()}.",
+                              url_for("dashboard"), f"application-status:{record.id}:{status}:{datetime.now(timezone.utc).isoformat()}")
     db.session.commit()
     flash("Application status updated.", "success")
     return redirect(url_for("admin") + "#applications")
+
+
+@app.post("/admin/applications/<int:application_id>/review")
+def admin_add_application_review(application_id):
+    require_admin()
+    record = db.session.get(Application, application_id) or abort(404)
+    reviewer_name = request.form.get("reviewer_name", "").strip()[:160]
+    reviewer_email = request.form.get("reviewer_email", "").strip().lower()[:254]
+    notes = request.form.get("notes", "").strip()
+    score_value = request.form.get("score", "").strip()
+    try:
+        score = int(score_value) if score_value else None
+    except ValueError:
+        score = -1
+    if (not reviewer_name or (reviewer_email and "@" not in reviewer_email)
+            or score is not None and not 0 <= score <= 100
+            or not notes and score is None or len(notes) > 5000):
+        flash("Enter a reviewer name and either review notes or a score from 0 to 100.", "error")
+        return redirect(url_for("admin") + "#applications")
+    db.session.add(ApplicationReview(application_id=record.id, reviewer_name=reviewer_name,
+                                      reviewer_email=reviewer_email, score=score, notes=notes))
+    db.session.commit()
+    flash("Application review saved to its history.", "success")
+    return redirect(url_for("admin") + "#applications")
+
+
+@app.post("/admin/applications/<int:application_id>/assignment")
+def admin_assign_application(application_id):
+    require_admin()
+    db.session.get(Application, application_id) or abort(404)
+    action = request.form.get("action", "assign")
+    assignment = db.session.get(ApplicationAssignment, application_id)
+    if action == "clear":
+        if assignment:
+            db.session.delete(assignment)
+            db.session.commit()
+        flash("Reviewer assignment cleared.", "success")
+        return redirect(url_for("admin") + "#applications")
+    reviewer_name = request.form.get("reviewer_name", "").strip()[:160]
+    reviewer_email = request.form.get("reviewer_email", "").strip().lower()[:254]
+    if not reviewer_name or "@" not in reviewer_email:
+        flash("Enter the assigned reviewer's name and email address.", "error")
+        return redirect(url_for("admin") + "#applications")
+    if assignment is None:
+        assignment = ApplicationAssignment(application_id=application_id, reviewer_name=reviewer_name,
+                                           reviewer_email=reviewer_email, assigned_by=session.get("admin_name", "Admin"))
+        db.session.add(assignment)
+    else:
+        assignment.reviewer_name = reviewer_name
+        assignment.reviewer_email = reviewer_email
+        assignment.assigned_by = session.get("admin_name", "Admin")
+    db.session.commit()
+    flash("Reviewer assignment saved.", "success")
+    return redirect(url_for("admin") + "#applications")
+
+
+def csv_cell(value):
+    text = "" if value is None else str(value)
+    return "'" + text if text.startswith(("=", "+", "-", "@", "\t", "\r")) else text
+
+
+@app.get("/admin/applications.csv")
+def admin_export_applications():
+    require_admin()
+    applications, _, _, _, _ = filtered_admin_applications(limit=10000)
+    ids = [record.id for record in applications]
+    reviews = ApplicationReview.query.filter(ApplicationReview.application_id.in_(ids)).order_by(ApplicationReview.created_at.desc()).all() if ids else []
+    assignments = ApplicationAssignment.query.filter(ApplicationAssignment.application_id.in_(ids)).all() if ids else []
+    latest_review = {}
+    for review in reviews:
+        latest_review.setdefault(review.application_id, review)
+    assignment_by_id = {item.application_id: item for item in assignments}
+    output = io.StringIO(newline="")
+    writer = csv.writer(output)
+    writer.writerow(["Reference", "Applicant", "Email", "Phone", "Opportunity", "Status", "Payment", "Submitted at", "Statement", "Reviewer", "Score", "Latest review notes"])
+    for item in applications:
+        review = latest_review.get(item.id)
+        assignment = assignment_by_id.get(item.id)
+        writer.writerow([csv_cell(item.reference), csv_cell(item.user.full_name), csv_cell(item.user.email), csv_cell(item.user.phone), csv_cell(item.opportunity.title), csv_cell(item.status), csv_cell(item.payment_status), csv_cell(item.created_at.isoformat()), csv_cell(item.statement), csv_cell(assignment.reviewer_name if assignment else review.reviewer_name if review else ""), csv_cell(review.score if review else ""), csv_cell(review.notes if review else "")])
+    filename = f"nextgen-applications-{datetime.now(timezone.utc):%Y%m%d}.csv"
+    return Response("\ufeff" + output.getvalue(), content_type="text/csv; charset=utf-8",
+                    headers={"Content-Disposition": f"attachment; filename={filename}"})
 
 
 @app.get("/health")
