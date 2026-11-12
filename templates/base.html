@@ -4,7 +4,7 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#142e28">
   <meta name="description" content="Discover global scholarships, careers, leadership programs and events with NextGen Opportunities Plus. Discover. Connect. Explore.">
   <title>{% block title %}NextGen Opportunities Plus · Discover. Connect. Explore.{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}?v=20261112-plus">
+  <link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}?v=20261112-directory">
 </head>
 <body>
 <header class="header"><div class="wrap nav">
@@ -14,9 +14,9 @@
     <details class="nav-dropdown"><summary>Explore all <span>⌄</span></summary><div class="mega-menu">
       <div class="mega-group"><b>OPPORTUNITIES</b><a href="{{ url_for('home',category='scholarship') }}#discover">Scholarships</a><a href="{{ url_for('home',category='fellowship') }}#discover">Fellowships</a><a href="{{ url_for('home',category='internship') }}#discover">Internships</a><a href="{{ url_for('home',category='job') }}#discover">Jobs & careers</a></div>
       <div class="mega-group"><b>GROW & CONNECT</b><a href="{{ url_for('home',category='grant') }}#discover">Grants & competitions</a><a href="{{ url_for('home',category='camp') }}#discover">Camps & leadership</a><a href="{{ url_for('home',category='training') }}#discover">Training & exchange</a><a href="{{ url_for('home',category='event') }}#discover">Conferences & events</a></div>
-      <div class="mega-feature"><span>YOUR NEXT STEP, ONE HUB</span><b>Find it.<br>Prepare for it.<br>Make it happen.</b><a href="{{ url_for('home') }}#discover">Browse all opportunities ↗</a></div>
+      <div class="mega-feature"><span>YOUR NEXT STEP, ONE HUB</span><b>Find it.<br>Prepare for it.<br>Make it happen.</b><a href="{{ url_for('opportunities') }}">Browse all opportunities ↗</a></div>
     </div></details>
-    <a href="{{ url_for('events') }}">Events</a><a class="nav-media-link" href="{{ url_for('gallery') }}"><span aria-hidden="true">▧</span> Community Highlights</a><a href="{{ url_for('programs') }}">Programs</a><a href="{{ url_for('about') }}">Our story</a><a href="{{ url_for('contact') }}">Contact</a>
+    <a class="nav-opportunities-link" href="{{ url_for('opportunities') }}">Opportunities</a><a href="{{ url_for('events') }}">Events</a><a class="nav-media-link" href="{{ url_for('gallery') }}"><span aria-hidden="true">▧</span> Community Highlights</a><a href="{{ url_for('programs') }}">Programs</a><a href="{{ url_for('about') }}">Our story</a><a href="{{ url_for('contact') }}">Contact</a>
   </nav>
   <div class="nav-actions">{% if site_user %}<a class="nav-account" href="{{ url_for('dashboard') }}">My Hub <span>↗</span></a><span class="nav-avatar">{{ site_user.full_name[0]|upper }}</span>{% else %}<a class="nav-account" href="{{ url_for('login') }}">Sign in</a><a class="button button-nav" href="{{ url_for('register') }}">Join free <span>↗</span></a>{% endif %}</div>
 </div></header>
@@ -73,3 +73,4 @@
 })();
 </script>
 </body></html>
+
