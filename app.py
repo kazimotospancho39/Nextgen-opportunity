@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import json
 import secrets
 import smtplib
 from datetime import datetime, time, timedelta, timezone
@@ -70,6 +71,28 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
 
 
+class UserProfile(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
+    nationality = db.Column(db.String(100), nullable=False, default="")
+    country_of_residence = db.Column(db.String(100), nullable=False, default="")
+    education_level = db.Column(db.String(100), nullable=False, default="")
+    institution = db.Column(db.String(180), nullable=False, default="")
+    field_of_study = db.Column(db.String(180), nullable=False, default="")
+    employment_background = db.Column(db.Text, nullable=False, default="")
+    skills = db.Column(db.Text, nullable=False, default="")
+    languages = db.Column(db.String(300), nullable=False, default="")
+    interests = db.Column(db.String(500), nullable=False, default="")
+    career_goals = db.Column(db.Text, nullable=False, default="")
+    updated_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    def snapshot(self) -> dict[str, str]:
+        return {key: getattr(self, key) or "" for key in (
+            "nationality", "country_of_residence", "education_level", "institution",
+            "field_of_study", "employment_background", "skills", "languages", "interests", "career_goals",
+        )}
+
+
 class Opportunity(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     slug = db.Column(db.String(180), unique=True, nullable=False, index=True)
@@ -115,6 +138,13 @@ class Application(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     opportunity = db.relationship("Opportunity")
     user = db.relationship("User")
+
+
+class ApplicationProfileSnapshot(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    application_id = db.Column(db.Integer, db.ForeignKey("application.id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
+    profile_json = db.Column(db.Text, nullable=False, default="{}")
+    created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
 
 
 class EventRegistration(db.Model):
@@ -506,15 +536,19 @@ def apply(slug):
     if not session.get("user_id"):
         flash("Create an account or sign in to start your application.", "info")
         return redirect(url_for("login", next=url_for("apply", slug=slug)))
+    profile = UserProfile.query.filter_by(user_id=session["user_id"]).first()
     if request.method == "POST":
         statement = request.form.get("statement", "").strip()
         if len(statement) < 80 or len(statement) > 5000:
             flash("Your statement should be between 80 and 5,000 characters.", "error")
-            return render_template("apply.html", item=item)
+            return render_template("apply.html", item=item, profile=profile)
         user = db.session.get(User, session["user_id"])
         record = Application(reference=f"OH-APP-{secrets.token_hex(5).upper()}", opportunity=item, user=user, statement=statement, payment_status="not_required" if not item.application_fee_tzs else "pending")
         db.session.add(record)
         db.session.flush()
+        application_profile = profile.snapshot() if profile else {}
+        application_profile.update({"full_name": user.full_name, "email": user.email, "phone": user.phone})
+        db.session.add(ApplicationProfileSnapshot(application_id=record.id, profile_json=json.dumps(application_profile, ensure_ascii=False)))
         if item.application_fee_tzs:
             payment = make_payment("application", record.id, item.application_fee_tzs)
             db.session.commit()
@@ -522,7 +556,7 @@ def apply(slug):
         db.session.commit()
         flash("Application received. Track its progress from your dashboard.", "success")
         return redirect(url_for("dashboard"))
-    return render_template("apply.html", item=item)
+    return render_template("apply.html", item=item, profile=profile)
 
 
 @app.get("/events")
@@ -612,7 +646,55 @@ def dashboard():
     applications = Application.query.filter_by(user_id=user.id).order_by(Application.created_at.desc()).all()
     registrations = EventRegistration.query.filter_by(user_id=user.id).order_by(EventRegistration.created_at.desc()).all()
     saved = SavedOpportunity.query.filter_by(user_id=user.id).all()
-    return render_template("dashboard.html", user=user, applications=applications, registrations=registrations, saved=saved)
+    profile = UserProfile.query.filter_by(user_id=user.id).first()
+    profile_values = profile.snapshot() if profile else {}
+    profile_terms = {word.lower() for value in profile_values.values() for word in value.replace(",", " ").split() if len(word) > 2}
+    recommendations = []
+    if profile_terms:
+        for opportunity in Opportunity.query.filter_by(active=True).all():
+            if countdown_expired(opportunity.deadline, True):
+                continue
+            searchable = f"{opportunity.title} {opportunity.category} {opportunity.location} {opportunity.level} {opportunity.summary} {opportunity.eligibility}".lower()
+            score = sum(1 for term in profile_terms if term in searchable)
+            if score:
+                recommendations.append((score, opportunity))
+        recommendations = [item for _, item in sorted(recommendations, key=lambda pair: (pair[0], pair[1].featured, pair[1].created_at), reverse=True)[:4]]
+    if not recommendations:
+        recommendations = Opportunity.query.filter_by(active=True, featured=True).order_by(Opportunity.created_at.desc()).limit(4).all()
+    profile_fields = ("nationality", "country_of_residence", "education_level", "institution", "field_of_study", "employment_background", "skills", "languages", "interests", "career_goals")
+    profile_completion = round(sum(bool(profile_values.get(field)) for field in profile_fields) * 100 / len(profile_fields))
+    return render_template("dashboard.html", user=user, applications=applications, registrations=registrations, saved=saved, profile=profile, profile_completion=profile_completion, recommendations=recommendations)
+
+
+@app.route("/my-profile", methods=["GET", "POST"])
+def profile():
+    if not session.get("user_id"):
+        return redirect(url_for("login", next=url_for("profile")))
+    user = db.session.get(User, session["user_id"]) or abort(404)
+    member_profile = UserProfile.query.filter_by(user_id=user.id).first()
+    if member_profile is None:
+        member_profile = UserProfile(user_id=user.id)
+        db.session.add(member_profile)
+        db.session.commit()
+    fields = {
+        "nationality": 100, "country_of_residence": 100, "education_level": 100,
+        "institution": 180, "field_of_study": 180, "employment_background": 3000,
+        "skills": 1500, "languages": 300, "interests": 500, "career_goals": 2000,
+    }
+    if request.method == "POST":
+        full_name = request.form.get("full_name", "").strip()[:160]
+        phone = request.form.get("phone", "").strip()[:40]
+        if not full_name:
+            flash("Enter your name to save your profile.", "error")
+            return render_template("profile.html", user=user, profile=member_profile)
+        user.full_name = full_name
+        user.phone = phone
+        for field, limit in fields.items():
+            setattr(member_profile, field, request.form.get(field, "").strip()[:limit])
+        db.session.commit()
+        flash("Your profile is saved and will help personalize recommendations and applications.", "success")
+        return redirect(url_for("profile"))
+    return render_template("profile.html", user=user, profile=member_profile)
 
 
 def safe_next(value: str | None) -> str | None:
@@ -931,7 +1013,7 @@ def admin_update_application_status(application_id):
     require_admin()
     record = db.session.get(Application, application_id) or abort(404)
     status = request.form.get("status", "")
-    if status not in {"Submitted", "In review", "Shortlisted", "Offer made", "Not selected"}:
+    if status not in {"Submitted", "Under review", "Shortlisted", "Interview", "Accepted", "Rejected", "Waitlisted", "Withdrawn"}:
         abort(400)
     record.status = status
     db.session.commit()

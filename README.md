@@ -7,6 +7,7 @@ NextGen Opportunities Plus is an independent global platform for discovering opp
 - Worldwide opportunity discovery: scholarships, fellowships, internships, jobs, grants, leadership camps, training, conferences and exchange programs.
 - Keyword, category and region filters, with online and in-person listings.
 - Internal member accounts, saved opportunities, application forms, deadline countdowns and progress tracking.
+- Member profile with reusable education, experience, skills, language and interest details; profile-based recommendations and a point-in-time profile snapshot for each new application.
 - Event calendar, live event countdowns, registration windows, capacity tracking and ticketing.
 - Page-specific admin content, opportunity and event publishing, application review stages, contact inbox and newsletter subscribers.
 - Admins can optionally attach one or more photos or videos to page content, new opportunities and events; attached media appears on the matching public page and can also be managed in the media library.
@@ -43,3 +44,4 @@ Sample opportunities and event information are demonstration content. Replace th
 ## Client feedback
 
 Use [CLIENT_REVIEW.md](CLIENT_REVIEW.md) to guide a product review. A running local address is only available on your own computer; use a hosted staging environment to let a client try the app remotely.
+
