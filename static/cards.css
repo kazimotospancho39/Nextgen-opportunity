@@ -1,13 +1,13 @@
 /* Pale navy glass cards over the existing pink/red site canvas. */
 :root {
   --navy-accent: #102c4a;
-  --card-ink: #102a46;
-  --card-muted: #3c536b;
-  --card-border: rgba(16, 44, 74, .24);
+  --card-ink: #ffffff;
+  --card-muted: #dce8f5;
+  --card-border: rgba(255, 255, 255, .27);
   --card-texture:
-    radial-gradient(ellipse at 12% 8%, rgba(255,255,255,.98), transparent 42%),
-    repeating-linear-gradient(135deg, rgba(255,255,255,.48) 0 1px, transparent 1px 11px),
-    linear-gradient(135deg, #edf4fc 0%, #dce9f7 100%);
+    radial-gradient(ellipse at 12% 8%, rgba(255,255,255,.17), transparent 42%),
+    repeating-linear-gradient(135deg, rgba(255,255,255,.13) 0 1px, transparent 1px 11px),
+    linear-gradient(135deg, #102c4a 0%, #193e63 100%);
 }
 
 :is(
@@ -27,10 +27,10 @@
   .about-content > div:first-child, .contact-layout > div:first-child
 ):not(.pathway-cards) {
   color: var(--card-ink) !important;
-  background-color: #e6eff9 !important;
+  background-color: #102c4a !important;
   background-image: var(--card-texture) !important;
   border-color: var(--card-border) !important;
-  box-shadow: 0 14px 34px rgba(16,44,74,.12), inset 0 1px 0 rgba(255,255,255,.96) !important;
+  box-shadow: 0 16px 38px rgba(10,24,42,.24), inset 0 1px 0 rgba(255,255,255,.28) !important;
   backdrop-filter: blur(16px) saturate(125%);
   -webkit-backdrop-filter: blur(16px) saturate(125%);
 }
@@ -88,7 +88,7 @@
   .media-showcase-head, .gallery-intro, .alerts-layout > div:first-child,
   .form-heading, .about-content > div:first-child, .contact-layout > div:first-child
 ):not(.pathway-cards) a:not(.button):not(.mini-button):not(.tag):not(.status) {
-  color: var(--navy-accent) !important;
+  color: #ffffff !important;
 }
 
 :is(
@@ -105,7 +105,7 @@
   .notifications-empty
 ):not(.pathway-cards) :is(input,select,textarea) {
   background: rgba(255,255,255,.97) !important;
-  color: var(--card-ink) !important;
+  color: #102a46 !important;
   border-color: rgba(16,44,74,.28) !important;
 }
 
@@ -114,6 +114,65 @@
   color: var(--navy-accent) !important;
   border: 1px solid rgba(16,44,74,.2);
 }
+
+:is(
+  [class*="-card"], [class*="-panel"], .admin-stat, .admin-content-card,
+  .region-card, .gallery-empty, .content-media-item, .service-list article,
+  .search-form, .directory-filters, .directory-count, .profile-heading,
+  .profile-form-section, .application-form, .application-summary, .apply-card,
+  .notification-item, .notifications-feed, .notification-preferences,
+  .manage-row, .manage-list, .admin-record, .admin-hint, .admin-stats > div,
+  .media-admin-row, .application-review-card, .dash-row, .dashboard-section,
+  .event-row, .event-preview-card, .pathway-card, .event-stamp, .signal-row,
+  .empty-state, .directory-empty, .hub-note, .form-step, .contact-note,
+  .edit-existing-media, .attached-content-media, .participants-panel,
+  .participant-row, .notifications-empty, .hero-copy, .section-head,
+  .global-locations-head, .media-showcase-head, .gallery-intro,
+  .alerts-layout > div:first-child, .form-heading,
+  .about-content > div:first-child, .contact-layout > div:first-child
+):not(.pathway-cards) em {
+  color: #f4a8c4 !important;
+}
+
+:is(
+  [class*="-card"], [class*="-panel"], .admin-stat, .admin-content-card,
+  .region-card, .gallery-empty, .content-media-item, .service-list article,
+  .search-form, .directory-filters, .directory-count, .profile-heading,
+  .profile-form-section, .application-form, .application-summary, .apply-card,
+  .notification-item, .notifications-feed, .notification-preferences,
+  .manage-row, .manage-list, .admin-record, .admin-hint, .admin-stats > div,
+  .media-admin-row, .application-review-card, .dash-row, .dashboard-section,
+  .event-row, .event-preview-card, .pathway-card, .event-stamp, .signal-row,
+  .empty-state, .directory-empty, .hub-note, .form-step, .contact-note,
+  .edit-existing-media, .attached-content-media, .participants-panel,
+  .participant-row, .notifications-empty, .hero-copy, .section-head,
+  .global-locations-head, .media-showcase-head, .gallery-intro,
+  .alerts-layout > div:first-child, .form-heading,
+  .about-content > div:first-child, .contact-layout > div:first-child
+):not(.pathway-cards) .eyebrow {
+  color: #f4a8c4 !important;
+}
+
+:is(
+  [class*="-card"], [class*="-panel"], .admin-stat, .admin-content-card,
+  .region-card, .gallery-empty, .content-media-item, .service-list article,
+  .search-form, .directory-filters, .directory-count, .profile-heading,
+  .profile-form-section, .application-form, .application-summary, .apply-card,
+  .notification-item, .notifications-feed, .notification-preferences,
+  .manage-row, .manage-list, .admin-record, .admin-hint, .admin-stats > div,
+  .media-admin-row, .application-review-card, .dash-row, .dashboard-section,
+  .event-row, .event-preview-card, .pathway-card, .event-stamp, .signal-row,
+  .empty-state, .directory-empty, .hub-note, .form-step, .contact-note,
+  .edit-existing-media, .attached-content-media, .participants-panel,
+  .participant-row, .notifications-empty, .hero-copy, .section-head,
+  .global-locations-head, .media-showcase-head, .gallery-intro,
+  .alerts-layout > div:first-child, .form-heading,
+  .about-content > div:first-child, .contact-layout > div:first-child
+):not(.pathway-cards) span:not(.tag):not(.status):not(.media-kind):not(.board-icon):not(.notification-mark):not(.pathway-art):not(.pathway-number) {
+  color: var(--card-muted) !important;
+}
+.notification-meta span{color:#f4a8c4!important}
+.button :is(b,span),.mini-button :is(b,span){color:inherit!important}
 
 :is(
   [class*="-card"], [class*="-panel"], .region-card, .gallery-empty,
@@ -134,17 +193,21 @@
 
 :is(.contact-form,.learning-locked) {
   color: var(--card-ink);
-  background-color: #e6eff9;
+  background-color: #102c4a;
   background-image: var(--card-texture);
   border: 1px solid var(--card-border);
-  box-shadow: 0 14px 34px rgba(16,44,74,.12), inset 0 1px 0 rgba(255,255,255,.96);
+  box-shadow: 0 16px 38px rgba(10,24,42,.24), inset 0 1px 0 rgba(255,255,255,.28);
   backdrop-filter: blur(16px) saturate(125%);
   -webkit-backdrop-filter: blur(16px) saturate(125%);
 }
+.opportunity-extra-fields{color:#fff;background-color:#102c4a!important;background-image:var(--card-texture)!important;border-color:var(--card-border)!important;box-shadow:0 14px 34px rgba(10,24,42,.22),inset 0 1px 0 rgba(255,255,255,.25)}
+.opportunity-extra-fields>summary,.opportunity-extra-grid>label{color:#fff!important}
+.opportunity-extra-grid :is(input,select,textarea){background:rgba(255,255,255,.97)!important;color:#102a46!important;border-color:rgba(16,44,74,.28)!important}
 .contact-form :is(label,h1,h2,h3,b,strong),.learning-locked :is(span,p){color:var(--card-ink)!important}
-.contact-form :is(input,select,textarea){background:rgba(255,255,255,.97)!important;color:var(--card-ink)!important;border-color:rgba(16,44,74,.28)!important}
-.learning-locked a{color:var(--navy-accent)!important}
-.pathway-card :is(.pathway-number,.pathway-art,.art-events,.art-work),.pathway-card>i{color:var(--navy-accent)!important}
+.contact-form :is(input,select,textarea){background:rgba(255,255,255,.97)!important;color:#102a46!important;border-color:rgba(16,44,74,.28)!important}
+.learning-locked a{color:#fff!important}
+.pathway-card :is(.pathway-number,.pathway-art,.art-events,.art-work),.pathway-card>i{color:#fff!important}
+.event-stamp :is(span,b),.notification-mark{color:#fff!important}
 
 @media (prefers-reduced-motion: reduce) {
   :is(.notification-item,.participant-row,.manage-row,.media-admin-row,.application-review-card,.event-preview-card,.event-row) { transition: none; }
