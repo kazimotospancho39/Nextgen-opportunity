@@ -103,3 +103,67 @@
 .brand-nextgen{display:block;flex:none}.brand-nextgen img{display:block;width:228px;height:auto}.footer-brand img{width:250px}
 @media(max-width:900px){.brand-nextgen img{width:205px}.footer-brand img{width:235px}}
 @media(max-width:650px){.brand-nextgen img{width:190px}.footer-brand img{width:230px}}
+
+/* NextGen palette: peach, dark red, black, dark blue, light blue and dark orange */
+:root{--peach:#F4B99A;--dark-red:#7D2031;--black:#111318;--dark-blue:#102C4A;--light-blue:#E7F1FA;--dark-orange:#B9531B;--forest:var(--dark-blue);--forest2:#193D60;--leaf:var(--peach);--paper:#F2F7FC;--white:#fff;--ink:var(--black);--muted:#596675;--line:#D4E0EC;--coral:var(--dark-orange);--lilac:var(--dark-red)}
+body{background:var(--paper);color:var(--black)}
+.header{background:#F2F7FCF2;border-bottom-color:#102C4A20}
+.brand-mark{background:var(--peach);color:var(--dark-blue)}.brand-mark span{color:var(--dark-red)}
+.brand-words small{color:#586A7D}
+.nav-links,.nav-dropdown>summary{color:#334B63}
+.nav-links a:hover,.nav-account:hover,.footer-nav a:hover,.nav-dropdown>summary:hover,.mega-group>a:hover,.all-regions{color:var(--dark-orange)}
+.nav-media-link{background:#FBE8DE;color:var(--dark-red)}
+.nav-media-link:hover{background:#F4D4C3;color:var(--dark-red)}
+.button-nav,.button-dark,.category-tab.active{background:var(--dark-blue);color:#fff}
+.button-dark:hover,.button-nav:hover{background:var(--forest2)}
+.button-lime{background:var(--peach);color:var(--black)}.button-lime:hover{background:#F8CBB4}
+.eyebrow{color:var(--peach)}.dark-eyebrow{color:var(--dark-red)}
+.hero,.info-hero,.dashboard-banner,.admin-top{background:var(--dark-blue);color:#fff}
+.hero h1 em,.info-hero h1 em,.dashboard-banner h1 em,.pathways h2 em{color:var(--peach)}
+.hero-copy>p,.info-hero p{color:#D6E5F3}
+.pathways,.mega-feature{background:var(--forest2);color:#fff}
+.signal,.global-locations,.media-showcase,.alerts,.info-cta{background:var(--light-blue)}
+.signal-row>b,.service-list article>span,.service-list article>b,.gallery-empty>span{color:var(--dark-red)}
+.signal-row>span,.signal-row small,.global-locations-head>p,.region-card>span,.region-card>small{color:#566A7F}
+.section-head h2 em,.event-preview h2 em,.alerts h2 em,.info-body h2 em,.info-cta h2 em,.global-locations-head h2 em,.media-showcase-head h2 em,.gallery-intro h2 em,.account-panel h1 em,.admin-top h1 em,.form-heading h1 em,.apply-card h2 em,.payment-card h1 em,.admin-login-card h1 em{color:var(--dark-red)}
+.category-rail,.category-tab,.search-form,.opportunity-card,.event-card,.region-card,.media-card,.gallery-empty,.service-list article{border-color:var(--line)}
+.category-tab.active{border-color:var(--dark-blue)}.category-tab span,.category-tab.active span{color:var(--peach)}
+.search-form,.search-form select,.opportunity-card,.event-card,.region-card,.media-card,.gallery-empty,.info-body,.content-media-item{background:#fff}
+.search-form input,.opportunity-card h3,.region-card>b,.media-caption h3,.service-list article h2{color:var(--black)}
+.search-icon,.search-form select,.section-head>p,.opportunity-card>p,.card-facts,.media-caption p,.service-list article p,.account-panel>p{color:#596675}
+.tag-scholarship,.tag-fellowship{background:#FBEBDD;color:#7C4A1F}
+.tag-internship,.tag-job{background:#E6EFF8;color:var(--dark-blue)}
+.tag-event,.tag-camp,.tag-training{background:#F8E5E8;color:var(--dark-red)}
+.tag-grant{background:#F8E7DB;color:var(--dark-orange)}
+.featured-tag,.op-card-bottom a,.op-card-bottom>span{color:var(--dark-orange)}
+.personal-board,.countdown-large{background:#E2EEF8}
+.board-icon{background:var(--peach);color:var(--dark-red)}.personal-board>a{color:var(--dark-red)}
+.countdown,.countdown:before{color:var(--dark-orange)}.countdown-ended,.countdown-ended:before{color:var(--dark-red)}
+.region-card{background:#F8FBFE}.region-card:hover,.region-card.active{border-color:var(--dark-orange);background:#fff}
+.region-card>i,.region-card>b{color:var(--dark-blue)}
+.media-kind{background:#102C4ADB;color:#fff}
+.media-empty,.media-admin-preview{background:#EAF2F9;border-color:#D4E0EC}
+.media-flags span,.admin-tabs .media-admin-tab{background:#F8E5E8;border-color:#E9C7CE;color:var(--dark-red)}
+.media-delete{color:var(--dark-red)}
+.service-list article{border-bottom-color:var(--line)}
+.nav-links .nav-media-link{background:#FBE8DE;color:var(--dark-red)}
+.nav-links .nav-media-link:hover{background:#F4D4C3;color:var(--dark-red)}
+.footer{background:#0D2239;color:#fff}
+.footer-brand .brand-words small,.footer-grid>div:first-child>p,.footer-nav>span,.footer-nav>a,.footer-bottom{color:#C6D8E9}
+.footer-statement i{color:var(--dark-orange)}.footer-bottom{border-top-color:#FFFFFF30}
+.alerts-layout form>div{border-color:var(--line)}
+.info-cta .button,.alerts .button{background:var(--dark-orange);color:#fff}
+.info-cta .button:hover,.alerts .button:hover{background:#984313}
+.account-image-label span,.visual-caption i,.hero-foot b,.quiet-link span{color:var(--peach)}
+.visual-label{background:var(--peach);color:var(--dark-blue)}
+.payment-page{background:var(--light-blue)}
+.payment-card{border-color:var(--line)}
+.payment-mark{color:var(--dark-orange)}
+.admin-panel,.admin-stat,.admin-content-card{border-color:var(--line)}
+.admin-top p,.dashboard-banner p{color:#D6E5F3}
+.updates-dialog{background:#0D2239D9}
+.updates-card{background:#F7FAFD}
+.updates-card h2 em{color:var(--dark-orange)}
+.updates-card input,.admin-form input,.admin-form textarea,.admin-form select{border-color:var(--line)}
+.updates-card input:focus,.admin-form input:focus,.admin-form textarea:focus,.admin-form select:focus{border-color:var(--dark-orange);outline-color:var(--dark-orange)}
+.button[disabled],.payment-card .button:disabled{background:#687788;color:#fff}
