@@ -218,3 +218,21 @@ body{background-color:var(--pink);background-image:var(--wide-curves);background
 .category-rail{border-bottom-color:#7D203133}
 .event-preview-card,.pathway-card{background-color:rgba(255,255,255,.30)}
 .footer{background:#171114;color:#fff}
+
+/* Keep headings readable when a wide red ribbon passes behind them */
+.hero-copy,.section-head,.global-locations-head,.media-showcase-head,.gallery-intro,.alerts-layout>div:first-child,.form-heading,.about-content>div:first-child,.contact-layout>div:first-child{
+  background:rgba(255,255,255,.84);
+  border:1px solid rgba(255,255,255,.72);
+  border-radius:22px;
+  padding:24px;
+  box-shadow:0 18px 42px rgba(62,20,36,.12),inset 0 1px 0 rgba(255,255,255,.9);
+  backdrop-filter:blur(18px) saturate(140%);
+  -webkit-backdrop-filter:blur(18px) saturate(140%);
+}
+.hero-copy{padding-left:34px}
+.signal-row{padding:0 24px;border-radius:18px;background:rgba(255,255,255,.78);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.hero-copy>.eyebrow,.section-head .eyebrow,.global-locations-head .eyebrow,.media-showcase-head .eyebrow,.alerts-layout .eyebrow,.form-heading .eyebrow{color:#7D2031}
+.hero h1,.info-hero h1,.dashboard-banner h1,.admin-top h1,.pathways h2{color:#111318}
+.hero-copy>p,.info-hero p,.dashboard-banner p,.admin-top p,.pathways-layout>div:first-child>p{color:#39404A}
+.hero-foot{margin-top:14px;padding:0 8px}
+@media(max-width:650px){.hero-copy,.section-head,.global-locations-head,.media-showcase-head,.gallery-intro,.alerts-layout>div:first-child,.form-heading,.about-content>div:first-child,.contact-layout>div:first-child{padding:18px;border-radius:17px}.hero-copy{padding-left:18px}.signal-row{padding:14px;border-radius:14px;height:auto;min-height:77px}}
