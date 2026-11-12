@@ -245,3 +245,33 @@ body{background-color:var(--pink);background-image:var(--wide-curves);background
 .region-card>i{color:var(--navy-accent)}
 .opportunity-card:hover,.event-preview-card:hover,.media-card:hover{border-color:var(--navy-accent)}
 :is(a,button,input,select,textarea):focus-visible{outline:2px solid var(--navy-accent);outline-offset:3px}
+
+/* The global directory follows the existing pink/red canvas and glass-card system. */
+.nav-opportunities-link{color:var(--navy-accent)!important}
+.opportunities-intro{padding:48px 0 22px;background:transparent!important}
+.opportunities-intro-card{max-width:1190px;padding:36px;border:1px solid rgba(255,255,255,.76);border-radius:24px;background:rgba(255,255,255,.84);box-shadow:0 18px 42px rgba(62,20,36,.12),inset 0 1px 0 rgba(255,255,255,.9);backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%)}
+.opportunities-intro-card .eyebrow,.directory-heading .eyebrow{color:#7D2031}
+.opportunities-intro-card h1{font:700 clamp(46px,6vw,72px)/1.02 var(--display);letter-spacing:-4px;margin:16px 0 13px;color:#111318}
+.opportunities-intro-card h1 em,.directory-heading h2 em{font:italic 500 1.02em var(--serif);color:#7D2031}
+.opportunities-intro-card p{max-width:650px;margin:0;color:#39404A;font-size:14px;line-height:1.8}
+.opportunities-directory{padding:35px 0 86px;background:transparent!important}
+.directory-heading{display:flex;justify-content:space-between;align-items:end;gap:18px;margin-bottom:20px}
+.directory-heading h2{font:700 clamp(30px,4vw,46px)/1.1 var(--display);letter-spacing:-2px;margin:8px 0 0;color:#111318}
+.directory-count{padding:9px 13px;border:1px solid rgba(16,44,74,.22);border-radius:30px;background:rgba(255,255,255,.7);font-size:10px;font-weight:700;color:var(--navy-accent);white-space:nowrap}
+.directory-filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 24px;padding:18px;border:1px solid rgba(255,255,255,.75);border-radius:18px;background:rgba(255,255,255,.74);box-shadow:0 14px 34px rgba(62,20,36,.10),inset 0 1px 0 rgba(255,255,255,.9);backdrop-filter:blur(16px) saturate(135%);-webkit-backdrop-filter:blur(16px) saturate(135%)}
+.directory-filters label{display:grid;gap:6px;min-width:0}
+.directory-filters label>span{font-size:9px;font-weight:700;color:#39404A}
+.directory-filters input,.directory-filters select{width:100%;height:42px;min-width:0;padding:0 11px;border:1px solid rgba(16,44,74,.2);border-radius:8px;background:rgba(255,255,255,.88);color:#252b31;font-size:11px}
+.directory-filters input::placeholder{color:#79818b}
+.directory-search{grid-column:span 2}
+.directory-filter-actions{grid-column:1/-1;display:flex;align-items:center;gap:18px;padding-top:3px}
+.directory-filter-actions .button{background:var(--navy-accent)}
+.directory-filter-actions>a{font-size:10px;font-weight:700;color:var(--navy-accent)}
+.directory-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.directory-empty{grid-column:1/-1;padding:40px 20px;text-align:center;border:1px solid rgba(255,255,255,.76);border-radius:18px;background:rgba(255,255,255,.74);backdrop-filter:blur(16px)}
+.directory-empty>span{font-size:26px;color:var(--navy-accent)}
+.directory-empty h3{margin:5px 0;font:700 22px var(--display);color:#111318}
+.directory-empty p{margin:0 0 16px;color:#4c5661;font-size:12px}
+.directory-empty .button{background:var(--navy-accent)}
+@media(max-width:650px){.opportunities-intro{padding:27px 0 13px}.opportunities-intro-card{padding:23px 20px;border-radius:18px}.opportunities-intro-card h1{font-size:46px;letter-spacing:-2.8px}.opportunities-intro-card p{font-size:12px}.opportunities-directory{padding:25px 0 58px}.directory-heading{display:grid;align-items:start}.directory-heading h2{font-size:34px}.directory-count{justify-self:start}.directory-filters{grid-template-columns:1fr 1fr;padding:13px;gap:10px}.directory-search{grid-column:1/-1}.directory-filters label>span{font-size:8px}.directory-filters input,.directory-filters select{font-size:10px;padding:0 8px}.directory-filter-actions{flex-wrap:wrap}.directory-grid{grid-template-columns:1fr}}
+
