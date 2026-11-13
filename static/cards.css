@@ -215,3 +215,8 @@
 @media (prefers-reduced-motion: reduce) {
   :is(.notification-item,.participant-row,.manage-row,.media-admin-row,.application-review-card,.event-preview-card,.event-row) { transition: none; }
 }
+
+/* Softer pink canvas and readable copy on areas without a card surface. */
+:root{--pink:#C3A3AC;--pink-soft:#DDC1C9;--paper:#C3A3AC}
+main:not(.admin-page) :is(p,li,dd,small,time){color:#33232B}
+main:not(.admin-page) :is(.back-link,.text-arrow,.all-regions,.quiet-link){color:#33232B}

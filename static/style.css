@@ -205,7 +205,7 @@ body{background:radial-gradient(ellipse at 12% 0%,#F8DCE8 0,transparent 35%),rad
 @media(prefers-reduced-motion:reduce){:is(.opportunity-card,.event-card,.region-card,.media-card,.gallery-empty,.info-body,.account-panel,.payment-card,.admin-panel,.admin-stat,.admin-content-card,.updates-card){transition:none}}
 
 /* Strong pink canvas with wide burgundy diagonals across content surfaces */
-:root{--paper:#E879A8;--pink:#E879A8;--pink-soft:#F4A8C4;--red-curve:#7D2031;--wide-curves:url('/static/pink-diagonal-waves.svg')}
+:root{--paper:#E879A8;--pink:#E879A8;--pink-soft:#F4A8C4;--red-curve:#7D2031;--wide-curves:url('/static/pink-diagonal-waves.svg?v=20261113-faint-waves')}
 body{background-color:var(--pink);background-image:var(--wide-curves);background-size:cover;background-position:center top;background-repeat:no-repeat}
 .hero,.info-hero,.dashboard-banner,.admin-top,.pathways,.mega-feature,.signal,.section-pad,.discover,.event-preview,.global-locations,.media-showcase,.alerts,.info-body,.info-cta,.detail-page,.form-page,.contact-page,.account-page,.payment-page,.content-media-section,main{background-color:var(--pink);background-image:var(--wide-curves);background-size:cover;background-position:center top;background-repeat:no-repeat}
 .hero,.info-hero,.dashboard-banner,.admin-top,.pathways,.mega-feature{color:var(--black)}

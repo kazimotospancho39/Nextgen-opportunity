@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
   <g fill="none" stroke="#7D2031" stroke-linecap="round">
-    <path stroke-width="220" stroke-opacity=".68" d="M-160 125C150 20 320 110 510 315s300 290 520 185S1330 135 1780 235"/>
-    <path stroke-width="190" stroke-opacity=".62" d="M-200 725C120 540 330 530 555 665s345 220 565 95 410-300 700-245"/>
+    <path stroke-width="220" stroke-opacity=".16" d="M-160 125C150 20 320 110 510 315s300 290 520 185S1330 135 1780 235"/>
+    <path stroke-width="190" stroke-opacity=".12" d="M-200 725C120 540 330 530 555 665s345 220 565 95 410-300 700-245"/>
   </g>
 </svg>
