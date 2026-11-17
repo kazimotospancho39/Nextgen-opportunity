@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 from flask import Flask, Response, abort, flash, redirect, render_template, request, session, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import CSRFProtect
-from sqlalchemy import or_
+from sqlalchemy import inspect, or_, text
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -169,6 +169,7 @@ class Event(db.Model):
     description = db.Column(db.Text, nullable=False, default="")
     capacity = db.Column(db.Integer, nullable=False, default=100)
     ticket_price_tzs = db.Column(db.Integer, nullable=False, default=0)
+    featured_on_home = db.Column(db.Boolean, nullable=False, default=False)
     active = db.Column(db.Boolean, nullable=False, default=True)
     created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
 
@@ -379,7 +380,8 @@ def attach_content_uploads(files, content_type: str, content_key: str | int, cap
         stored_name = f"{secrets.token_hex(16)}{extension}"
         upload.save(upload_dir / stored_name)
         item = MediaItem(title=Path(clean_name).stem[:180], caption=caption.strip()[:500], media_type="photo" if extension in IMAGE_EXTENSIONS else "video",
-                         file_path=(relative_dir / stored_name).as_posix(), show_on_home=False, show_in_gallery=False)
+                         file_path=(relative_dir / stored_name).as_posix(), show_on_home=False,
+                         show_in_gallery=content_type == "event")
         db.session.add(item)
         db.session.flush()
         db.session.add(ContentMedia(content_type=content_type, content_key=str(content_key), media=item))
@@ -657,7 +659,16 @@ def home():
         query = query.filter(or_(Opportunity.title.ilike(like), Opportunity.summary.ilike(like), Opportunity.location.ilike(like), Opportunity.description.ilike(like)))
     else:
         query = query.order_by(Opportunity.featured.desc(), Opportunity.created_at.desc())
-    return render_template("home.html", opportunities=query.limit(8).all(), events=Event.query.filter_by(active=True).order_by(Event.start_at).limit(3).all(), media_items=MediaItem.query.filter_by(show_on_home=True).order_by(MediaItem.created_at.desc()).limit(4).all(), learning_resources=LearningResource.query.filter_by(active=True, audience="public").order_by(LearningResource.created_at.desc()).limit(3).all(), page_media=content_media_for("page", "home"), copy=page_copy("home"), selected_category=category, selected_region=region, search=q, counts={"opportunities": public_opportunity_query().count(), "events": Event.query.filter_by(active=True).count()})
+    events = Event.query.filter_by(active=True).order_by(Event.start_at).all()
+    featured_event_slides = []
+    for event in Event.query.filter_by(active=True, featured_on_home=True).order_by(Event.start_at).all():
+        if countdown_expired(event.start_at):
+            continue
+        featured_event_slides.extend(
+            {"event": event, "media": media}
+            for media in content_media_for("event", event.id)
+        )
+    return render_template("home.html", opportunities=query.limit(8).all(), events=events[:3], featured_event_slides=featured_event_slides[:8], media_items=MediaItem.query.filter_by(show_on_home=True).order_by(MediaItem.created_at.desc()).limit(4).all(), learning_resources=LearningResource.query.filter_by(active=True, audience="public").order_by(LearningResource.created_at.desc()).limit(3).all(), page_media=content_media_for("page", "home"), copy=page_copy("home"), selected_category=category, selected_region=region, search=q, counts={"opportunities": public_opportunity_query().count(), "events": Event.query.filter_by(active=True).count()})
 
 
 @app.get("/opportunities")
@@ -873,7 +884,9 @@ def apply(slug):
 
 @app.get("/events")
 def events():
-    return render_template("events.html", events=Event.query.filter_by(active=True).order_by(Event.start_at).all())
+    events = Event.query.filter_by(active=True).order_by(Event.start_at).all()
+    event_media = {event.id: content_media_for("event", event.id) for event in events}
+    return render_template("events.html", events=events, event_media=event_media)
 
 
 @app.get("/events/<slug>")
@@ -1516,7 +1529,7 @@ def admin_add_event():
         flash("Enter an event title, summary, valid UTC start and optional end time, capacity and fee.", "error")
     else:
         location = form.get("location", "Worldwide · Online").strip() or "Worldwide · Online"
-        event = Event(slug=slugify(title), title=title, event_type=form.get("event_type", "Community event").strip() or "Community event", start_at=start_at, end_at=form.get("end_at", "").strip(), location=location, summary=summary, description=form.get("description", "").strip(), capacity=capacity, ticket_price_tzs=fee)
+        event = Event(slug=slugify(title), title=title, event_type=form.get("event_type", "Community event").strip() or "Community event", start_at=start_at, end_at=form.get("end_at", "").strip(), location=location, summary=summary, description=form.get("description", "").strip(), capacity=capacity, ticket_price_tzs=fee, featured_on_home=form.get("featured_on_home") == "on")
         db.session.add(event)
         db.session.flush()
         attach_content_uploads(uploads, "event", event.id, form.get("media_caption", ""))
@@ -1563,6 +1576,7 @@ def admin_edit_event(event_id):
         event.title, event.event_type, event.start_at, event.end_at = title, event_type, start_at, end_at
         event.location, event.summary, event.description = location, summary, description
         event.capacity, event.ticket_price_tzs = capacity, fee
+        event.featured_on_home = form.get("featured_on_home") == "on"
         attach_content_uploads(uploads, "event", event.id, form.get("media_caption", ""))
         changed = previous_values != (event.title, event.event_type, event.start_at, event.end_at, event.location,
                                       event.summary, event.description, event.capacity, event.ticket_price_tzs)
@@ -1849,6 +1863,9 @@ def health():
 
 with app.app_context():
     db.create_all()
+    if "featured_on_home" not in {column["name"] for column in inspect(db.engine).get_columns("event")}:
+        db.session.execute(text("ALTER TABLE event ADD COLUMN featured_on_home BOOLEAN NOT NULL DEFAULT FALSE"))
+        db.session.commit()
     seed_data()
 
 if __name__ == "__main__":

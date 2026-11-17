@@ -13,6 +13,8 @@
       <label>Full event description<textarea name="description" rows="6">{{ event.description }}</textarea></label>
       <label>Add photos or videos<input type="file" name="content_media" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime" multiple><small>Optional. New uploads appear on this event page.</small></label>
       <label>Caption for new media<input name="media_caption" maxlength="500" placeholder="Optional caption"></label>
+      <label class="check-label"><input type="checkbox" name="featured_on_home" {% if event.featured_on_home %}checked{% endif %}> Feature this event and its media on the homepage carousel</label>
+      <small class="upload-hint">The event must have at least one attached photo or video to appear in the carousel. All active events remain listed on the Events page.</small>
       <div class="admin-event-edit-actions"><button class="button button-dark">Save event changes ↗</button><a class="mini-button" href="{{ url_for('event_detail',slug=event.slug) }}" target="_blank" rel="noopener">Preview event page</a></div>
     </form>
     {% if content_media %}<div class="admin-event-media"><b>Media currently attached</b><div>{% for item in content_media %}<span>{{ item.media_type|title }} · {{ item.title }}</span>{% endfor %}</div></div>{% endif %}

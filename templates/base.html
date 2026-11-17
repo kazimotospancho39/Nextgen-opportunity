@@ -4,7 +4,7 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#142e28">
   <meta name="description" content="Discover global scholarships, careers, leadership programs and events with NextGen Opportunities Plus. Discover. Connect. Explore.">
   <title>{% block title %}NextGen Opportunities Plus · Discover. Connect. Explore.{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}?v=20261113-muted-rose">
+  <link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}?v=20261117-featured-events">
   <link rel="stylesheet" href="{{ url_for('static',filename='cards.css') }}?v=20261113-muted-rose">
 </head>
 <body>
@@ -27,6 +27,33 @@
 <div class="updates-dialog" id="updates-dialog" role="dialog" aria-modal="true" aria-labelledby="updates-title" hidden><div class="updates-card"><button class="updates-close" type="button" aria-label="Close notification prompt">×</button><div class="eyebrow">STAY IN THE LOOP</div><h2 id="updates-title">Want to hear about<br><em>what’s next?</em></h2><p>Get email alerts when new opportunities or events are published. You can unsubscribe at any time.</p><form method="post" action="{{ url_for('subscribe') }}" id="updates-subscribe-form"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label for="updates-email">Email address</label><input id="updates-email" type="email" name="email" autocomplete="email" placeholder="you@example.com" required><button class="button button-lime" type="submit">Allow updates <b>↗</b></button></form><button type="button" class="updates-cancel">Not now</button></div></div>
 <script>
 (() => {
+  document.querySelectorAll('[data-carousel]').forEach((carousel) => {
+    const slides = [...carousel.querySelectorAll('[data-carousel-slide]')];
+    const dots = [...carousel.querySelectorAll('[data-carousel-dot]')];
+    if (slides.length < 2) return;
+    let active = Math.max(0, slides.findIndex((slide) => slide.classList.contains('is-active')));
+    const interactionPaused = () => carousel.matches(':hover') || carousel.contains(document.activeElement);
+    const show = (index) => {
+      active = (index + slides.length) % slides.length;
+      slides.forEach((slide, i) => {
+        const selected = i === active;
+        slide.classList.toggle('is-active', selected);
+        slide.setAttribute('aria-hidden', String(!selected));
+        slide.querySelectorAll('video').forEach((video) => { if (!selected) video.pause(); });
+      });
+      dots.forEach((dot, i) => dot.setAttribute('aria-current', String(i === active)));
+    };
+    carousel.querySelector('[data-carousel-prev]')?.addEventListener('click', () => show(active - 1));
+    carousel.querySelector('[data-carousel-next]')?.addEventListener('click', () => show(active + 1));
+    dots.forEach((dot) => dot.addEventListener('click', () => show(Number(dot.dataset.carouselDot))));
+    const interval = Math.max(4000, Number(carousel.dataset.interval) || 6500);
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      window.setInterval(() => {
+        const videoPlaying = [...slides[active].querySelectorAll('video')].some((video) => !video.paused && !video.ended);
+        if (!interactionPaused() && document.visibilityState === 'visible' && !videoPlaying) show(active + 1);
+      }, interval);
+    }
+  });
   const dialog = document.getElementById('updates-dialog');
   if (dialog) {
     const choiceKey = 'opportunityHubUpdateChoice';
