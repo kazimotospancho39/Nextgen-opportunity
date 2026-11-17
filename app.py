@@ -15,6 +15,7 @@ from urllib.parse import urlparse
 import requests
 from dotenv import load_dotenv
 from flask import Flask, Response, abort, flash, redirect, render_template, request, session, url_for
+from authlib.integrations.flask_client import OAuth
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import CSRFProtect
 from sqlalchemy import inspect, or_, text
@@ -39,6 +40,16 @@ app.config.update(
 )
 db = SQLAlchemy(app)
 csrf = CSRFProtect(app)
+oauth = OAuth(app)
+google_oauth = None
+if os.getenv("GOOGLE_CLIENT_ID", "").strip() and os.getenv("GOOGLE_CLIENT_SECRET", "").strip():
+    google_oauth = oauth.register(
+        name="google",
+        server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
+        client_id=os.environ["GOOGLE_CLIENT_ID"].strip(),
+        client_secret=os.environ["GOOGLE_CLIENT_SECRET"].strip(),
+        client_kwargs={"scope": "openid email profile"},
+    )
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 PAYMENT_CURRENCY = os.getenv("PAYMENT_CURRENCY", "USD").strip().upper()
 PAYMENT_OPTIONS = "card, mobilemoneytanzania" if PAYMENT_CURRENCY == "TZS" else "card"
@@ -958,6 +969,45 @@ def login():
             return redirect(safe_next(request.form.get("next")) or url_for("dashboard"))
         flash("Email or password was not recognized.", "error")
     return render_template("account.html", mode="login", next=request.args.get("next", ""))
+
+
+@app.get("/account/google")
+def google_login():
+    if google_oauth is None:
+        flash("Google sign-in is not configured yet. Please sign in with your email and password.", "error")
+        return redirect(url_for("login", next=safe_next(request.args.get("next")) or ""))
+    session["google_login_next"] = safe_next(request.args.get("next"))
+    callback_url = url_for("google_callback", _external=True)
+    return google_oauth.authorize_redirect(callback_url)
+
+
+@app.get("/account/google/callback")
+def google_callback():
+    if google_oauth is None:
+        return redirect(url_for("login"))
+    try:
+        token = google_oauth.authorize_access_token()
+        identity = token.get("userinfo") or {}
+    except Exception:
+        app.logger.exception("Google sign-in could not verify the returned identity")
+        flash("Google sign-in could not be completed. Please try again or use your email and password.", "error")
+        return redirect(url_for("login"))
+
+    email = str(identity.get("email", "")).strip().lower()
+    if not email or identity.get("email_verified") is not True:
+        flash("Google did not provide a verified email address. Please use another sign-in method.", "error")
+        return redirect(url_for("login"))
+
+    user = User.query.filter_by(email=email).first()
+    if user is None:
+        display_name = str(identity.get("name", "")).strip()[:160] or email.split("@", 1)[0]
+        user = User(full_name=display_name, email=email, password_hash=generate_password_hash(secrets.token_urlsafe(48)))
+        db.session.add(user)
+        db.session.commit()
+    destination = session.pop("google_login_next", None)
+    session.clear()
+    session["user_id"] = user.id
+    return redirect(destination or url_for("dashboard"))
 
 
 @app.post("/account/sign-out")

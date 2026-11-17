@@ -35,6 +35,10 @@ Open `http://127.0.0.1:5000`. Admin studio: `http://127.0.0.1:5000/admin`. The a
 
 If required packages are missing, install them in the active environment with `python -m pip install -r requirements.txt`.
 
+## Google sign-in
+
+The login page includes Google sign-in. To activate it, create a Google OAuth web client and set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in the local `.env` file or the deployment's private environment settings. Add the matching callback URL to the Google client: `http://127.0.0.1:5000/account/google/callback` for local review, and `https://YOUR_PUBLIC_HOST/account/google/callback` for deployment. Keep the client secret private and out of Git. Without these settings, the button explains that Google sign-in needs configuration and password sign-in remains available.
+
 ## Payments and global availability
 
 `PAYMENT_CURRENCY` controls the amount currency (the review model uses USD). `FLW_SECRET_KEY` and `FLW_WEBHOOK_SECRET_HASH` are required for live checkout and verified payment updates. Set `DEMO_PAYMENTS=false` in a production environment. Add the gateway credentials through secure environment settings, never through the admin content editor.

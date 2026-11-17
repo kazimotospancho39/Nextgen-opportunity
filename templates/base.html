@@ -4,7 +4,7 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#142e28">
   <meta name="description" content="Discover global scholarships, careers, leadership programs and events with NextGen Opportunities Plus. Discover. Connect. Explore.">
   <title>{% block title %}NextGen Opportunities Plus · Discover. Connect. Explore.{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}?v=20261117-featured-events">
+  <link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}?v=20261117-account-refresh">
   <link rel="stylesheet" href="{{ url_for('static',filename='cards.css') }}?v=20261113-muted-rose">
 </head>
 <body>
@@ -19,7 +19,7 @@
     </div></details>
     <a class="nav-opportunities-link" href="{{ url_for('opportunities') }}">Opportunities</a><a href="{{ url_for('events') }}">Events</a><a href="{{ url_for('learning_centre') }}">Learning Centre</a><a class="nav-media-link" href="{{ url_for('gallery') }}"><span aria-hidden="true">▧</span> Community Highlights</a><a href="{{ url_for('programs') }}">Programs</a><a href="{{ url_for('about') }}">Our story</a><a href="{{ url_for('contact') }}">Contact</a>
   </nav>
-  <div class="nav-actions">{% if site_user %}<a class="nav-account" href="{{ url_for('profile') }}">My Profile</a><a class="nav-account" href="{{ url_for('notifications_center') }}">Updates{% if unread_notification_count %}<span class="nav-notification-count">{{ unread_notification_count }}</span>{% endif %}</a><a class="nav-account" href="{{ url_for('dashboard') }}">My Hub <span>↗</span></a><span class="nav-avatar">{{ site_user.full_name[0]|upper }}</span>{% else %}<a class="nav-account" href="{{ url_for('login') }}">Sign in</a><a class="button button-nav" href="{{ url_for('register') }}">Join free <span>↗</span></a>{% endif %}</div>
+  <div class="nav-actions">{% if site_user %}<a class="nav-account" href="{{ url_for('profile') }}">My Profile</a><a class="nav-account" href="{{ url_for('notifications_center') }}">Updates{% if unread_notification_count %}<span class="nav-notification-count">{{ unread_notification_count }}</span>{% endif %}</a><a class="nav-account" href="{{ url_for('dashboard') }}">My Hub <span>↗</span></a><span class="nav-avatar">{{ site_user.full_name[0]|upper }}</span><form class="nav-logout-form" method="post" action="{{ url_for('logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="nav-logout" type="submit">Log out <span aria-hidden="true">↗</span></button></form>{% else %}<a class="nav-account" href="{{ url_for('login') }}">Sign in</a><a class="button button-nav" href="{{ url_for('register') }}">Join free <span>↗</span></a>{% endif %}</div>
 </div></header>
 {% with messages=get_flashed_messages(with_categories=true) %}{% if messages %}<div class="wrap flashes">{% for kind,message in messages %}<div class="flash {{ kind }}">{{ message }}</div>{% endfor %}</div>{% endif %}{% endwith %}
 {% block content %}{% endblock %}

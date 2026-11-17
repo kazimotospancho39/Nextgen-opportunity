@@ -1,1 +1,40 @@
-{% extends 'base.html' %}{% block title %}{{ 'Create your Hub account' if mode=='create' else 'Sign in to your Hub' }}{% endblock %}{% block content %}<main class="account-page"><div class="account-image"><div class="account-image-label"><span>✳</span><b>Make your<br>next move.</b></div></div><div class="account-panel"><div class="eyebrow dark-eyebrow">YOUR PERSONAL OPPORTUNITY HUB</div><h1>{{ 'Open a door.' if mode=='create' else 'Welcome back.' }}</h1><p>{{ 'Save opportunities, apply and track everything from one place.' if mode=='create' else 'Sign in to pick up where you left off.' }}</p><form method="post" class="account-form"> <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="next" value="{{ request.args.get('next','') }}">{% if mode=='create' %}<label>Full name<input name="full_name" required autocomplete="name"></label>{% endif %}<label>Email address<input type="email" name="email" required autocomplete="email"></label>{% if mode=='create' %}<label>Mobile number <small>(optional)</small><input type="tel" name="phone" placeholder="+255"></label>{% endif %}<label>Password<input type="password" name="password" required minlength="{% if mode=='create' %}10{% else %}1{% endif %}" autocomplete="{% if mode=='create' %}new-password{% else %}current-password{% endif %}">{% if mode=='create' %}<small>At least 10 characters.</small>{% endif %}</label><button class="button button-dark full">{{ 'Create my free account' if mode=='create' else 'Sign in' }} <b>↗</b></button></form><p class="switch-account">{% if mode=='create' %}Already have an account? <a href="{{ url_for('login') }}">Sign in</a>{% else %}New to Opportunity Hub? <a href="{{ url_for('register') }}">Create a free account</a>{% endif %}</p></div></main>{% endblock %}
+{% extends 'base.html' %}
+{% block title %}{{ 'Create your Hub account' if mode=='create' else 'Sign in to your Hub' }}{% endblock %}
+{% block content %}
+<main class="account-page{% if mode == 'login' %} account-login-page{% else %} account-create-page{% endif %}">
+  <section class="account-showcase" aria-label="NextGen Opportunities Plus">
+    <div class="account-showcase-top"><span class="account-live-dot"></span><span>DISCOVER · CONNECT · EXPLORE</span></div>
+    <div class="account-showcase-copy">
+      <span class="account-kicker">YOUR NEXT CHAPTER</span>
+      <h1>{{ 'Find your next\nopportunity.' if mode=='create' else 'Your next\nmove starts here.' }}</h1>
+      <p>One place to discover opportunities, grow your experience and keep every next step within reach.</p>
+    </div>
+    <div class="account-showcase-bottom">
+      <div class="account-proof-mark" aria-hidden="true">N<span>+</span></div>
+      <div><strong>Possibility, connected.</strong><small>Opportunities for wherever you are headed.</small></div>
+      <span class="account-showcase-arrow" aria-hidden="true">↗</span>
+    </div>
+    <span class="account-orbit account-orbit-one" aria-hidden="true"></span><span class="account-orbit account-orbit-two" aria-hidden="true"></span>
+  </section>
+  <section class="account-panel">
+    <div class="account-panel-head"><span class="eyebrow dark-eyebrow">YOUR PERSONAL OPPORTUNITY HUB</span><span class="account-secure"><span aria-hidden="true">✳</span> MEMBER ACCESS</span></div>
+    <h2>{{ 'Open a door.' if mode=='create' else 'Welcome back.' }}</h2>
+    <p class="account-intro">{{ 'Create your account and keep your opportunities in one place.' if mode=='create' else 'Sign in to pick up where you left off.' }}</p>
+    <form method="post" class="account-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="next" value="{{ request.args.get('next','') }}">
+      {% if mode=='create' %}<label>Full name<input name="full_name" required autocomplete="name" placeholder="Your name"></label>{% endif %}
+      <label>Email address<input type="email" name="email" required autocomplete="email" placeholder="you@example.com"></label>
+      {% if mode=='create' %}<label>Mobile number <small>(optional)</small><input type="tel" name="phone" placeholder="+255" autocomplete="tel"></label>{% endif %}
+      <label>Password<input type="password" name="password" required minlength="{% if mode=='create' %}10{% else %}1{% endif %}" autocomplete="{% if mode=='create' %}new-password{% else %}current-password{% endif %}" placeholder="{{ 'Create a password' if mode=='create' else 'Enter your password' }}">{% if mode=='create' %}<small>At least 10 characters.</small>{% endif %}</label>
+      <button class="button button-dark full" type="submit">{{ 'Create my free account' if mode=='create' else 'Sign in to your account' }} <b>↗</b></button>
+    </form>
+    {% if mode=='login' %}
+    <div class="account-or-divider"><span>OR CONTINUE WITH</span></div>
+    <a class="google-signin" href="{{ url_for('google_login', next=request.args.get('next', '')) }}"><svg aria-hidden="true" viewBox="0 0 48 48"><path fill="#4285F4" d="M43.6 24.5c0-1.4-.1-2.8-.4-4.1H24v7.8h11a9.4 9.4 0 0 1-4.1 6.2v5h6.6c3.9-3.6 6.1-8.8 6.1-14.9Z"/><path fill="#34A853" d="M24 44c5.5 0 10.1-1.8 13.5-4.7l-6.6-5c-1.8 1.2-4.1 1.9-6.9 1.9-5.3 0-9.8-3.6-11.4-8.4H5.8v5.2A20 20 0 0 0 24 44Z"/><path fill="#FBBC05" d="M12.6 27.8a12 12 0 0 1 0-7.6V15H5.8a20 20 0 0 0 0 18Z"/><path fill="#EA4335" d="M24 11.8c3 0 5.7 1 7.8 3.1l5.9-5.9C34.1 5.8 29.5 4 24 4A20 20 0 0 0 5.8 15l6.8 5.2c1.6-4.8 6.1-8.4 11.4-8.4Z"/></svg><span>Continue with Google</span></a>
+    {% endif %}
+    <p class="switch-account">{% if mode=='create' %}Already have an account? <a href="{{ url_for('login') }}">Sign in</a>{% else %}New to Opportunity Hub? <a href="{{ url_for('register') }}">Create a free account</a>{% endif %}</p>
+    <div class="account-panel-foot"><span aria-hidden="true">✳</span> Your opportunities. Your journey. All in one hub.</div>
+  </section>
+</main>
+{% endblock %}
