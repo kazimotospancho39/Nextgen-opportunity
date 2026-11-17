@@ -1518,6 +1518,7 @@ def admin_add_event():
     if not content_uploads_are_valid(uploads):
         return redirect(url_for("admin") + "#manage-events")
     title, summary, start_at = (form.get(key, "").strip() for key in ("title", "summary", "start_at"))
+    end_at = form.get("end_at", "").strip()
     try:
         capacity, fee = int(form.get("capacity", "100")), int(form.get("fee_amount", "0"))
     except ValueError:
